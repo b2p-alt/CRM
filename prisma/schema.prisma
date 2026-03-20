@@ -7,13 +7,137 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Contact {
+// ─────────────────────────────────────────
+// USERS
+// ─────────────────────────────────────────
+
+enum UserRole {
+  MASTER
+  AGENTE
+}
+
+model User {
   id        String   @id @default(cuid())
-  name      String
-  email     String?  @unique
-  phone     String?
-  company   String?
-  notes     String?
+  nome      String
+  email     String   @unique
+  password  String
+  role      UserRole @default(AGENTE)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  notas       Nota[]
+  kanbanCards KanbanCard[]
+}
+
+// ─────────────────────────────────────────
+// EMPRESAS
+// ─────────────────────────────────────────
+
+model Empresa {
+  nif           String  @id // PT + 9 dígitos, ex: PT123456789
+  nome          String
+  telefone      String?
+  email         String?
+  morada        String?
+  distrito      String?
+  localidade    String?
+  quemAtende    String?
+  responsavel   String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  notas        Nota[]
+  instalacoes  Instalacao[]
+  kanbanCard   KanbanCard?
+}
+
+// ─────────────────────────────────────────
+// NOTAS (timestampadas por empresa + user)
+// ─────────────────────────────────────────
+
+model Nota {
+  id         String   @id @default(cuid())
+  texto      String
+  createdAt  DateTime @default(now())
+
+  empresaNif String
+  empresa    Empresa  @relation(fields: [empresaNif], references: [nif])
+
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+}
+
+// ─────────────────────────────────────────
+// INSTALAÇÕES
+// ─────────────────────────────────────────
+
+enum TipoInstalacao {
+  MAT
+  AT
+  MT
+  BTE
+  BTN
+}
+
+enum CicloTarifario {
+  SIMPLES
+  BI_HORARIO
+  TRI_HORARIO
+  DIARIO
+  SEMANAL
+  SEMANAL_OPCIONAL
+}
+
+model Instalacao {
+  id                  String          @id @default(cuid())
+  cpe                 String          @unique
+  morada              String?
+  tipoInstalacao      TipoInstalacao
+  cicloTarifario      CicloTarifario
+  dataInicioContrato  DateTime?
+  mesTermino          String?         // ex: "2025-12"
+  fornecedor          String?
+
+  // Consumos em kWh
+  consumoPonta        Float?
+  consumoCheia        Float?
+  consumoVazio        Float?
+  consumoSVazio       Float?
+  consumoAnual        Float?
+
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
+
+  empresaNif          String
+  empresa             Empresa         @relation(fields: [empresaNif], references: [nif])
+}
+
+// ─────────────────────────────────────────
+// KANBAN CARDS
+// ─────────────────────────────────────────
+
+enum KanbanColuna {
+  PRIMEIRO_CONTACTO
+  EM_CONTACTO
+  PROPOSTA
+  CLIENTE
+}
+
+model KanbanCard {
+  id                  String       @id @default(cuid())
+  coluna              KanbanColuna @default(PRIMEIRO_CONTACTO)
+
+  // Agendamento de próximo contacto
+  agendamentoData     DateTime?
+  agendamentoNota     String?
+
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+
+  // Empresa bloqueada por este user
+  empresaNif          String       @unique
+  empresa             Empresa      @relation(fields: [empresaNif], references: [nif])
+
+  userId              String
+  user                User         @relation(fields: [userId], references: [id])
 }
