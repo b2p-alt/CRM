@@ -11,6 +11,7 @@ type SearchParams = {
   nif?: string;
   nome?: string;
   tipoInstalacao?: string;
+  mesInicio?: string;
 };
 
 export default async function EmpresasPage({
@@ -23,6 +24,17 @@ export default async function EmpresasPage({
 
   const filters = await searchParams;
 
+  // Raw SQL for month-of-contract-start filter
+  let nifsComMesInicio: string[] | null = null;
+  if (filters.mesInicio && /^([1-9]|1[0-2])$/.test(filters.mesInicio)) {
+    const rows = await prisma.$queryRaw<{ empresaNif: string }[]>`
+      SELECT DISTINCT "empresaNif"
+      FROM "Instalacao"
+      WHERE EXTRACT(MONTH FROM "dataInicioContrato") = ${parseInt(filters.mesInicio)}
+    `;
+    nifsComMesInicio = rows.map((r) => r.empresaNif);
+  }
+
   const empresas = await prisma.empresa.findMany({
     where: {
       ...(filters.distrito && { distrito: filters.distrito }),
@@ -32,6 +44,7 @@ export default async function EmpresasPage({
       ...(filters.tipoInstalacao && {
         instalacoes: { some: { tipoInstalacao: filters.tipoInstalacao as never } },
       }),
+      ...(nifsComMesInicio !== null && { nif: { in: nifsComMesInicio } }),
     },
     include: { _count: { select: { instalacoes: true } }, kanbanCard: { select: { userId: true, user: { select: { nome: true } } } } },
     orderBy: { nome: "asc" },

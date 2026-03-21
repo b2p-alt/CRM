@@ -33,11 +33,14 @@ export default async function DashboardPage() {
             <h2 className="font-semibold text-gray-900">Empresas</h2>
             <p className="text-sm text-gray-500 mt-1">Pesquisar e gerir empresas</p>
           </Link>
-          <div className="bg-white border border-gray-200 rounded-xl p-6 opacity-50 cursor-not-allowed">
+          <Link
+            href="/kanban"
+            className="bg-white border border-gray-200 rounded-xl p-6 hover:border-blue-300 hover:shadow-sm transition"
+          >
             <div className="text-2xl mb-2">📋</div>
             <h2 className="font-semibold text-gray-900">Kanban</h2>
-            <p className="text-sm text-gray-500 mt-1">Em construção</p>
-          </div>
+            <p className="text-sm text-gray-500 mt-1">Gerir pipeline comercial</p>
+          </Link>
         </div>
       </main>
     </div>

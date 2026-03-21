@@ -25,6 +25,18 @@ export async function GET(req: NextRequest) {
   const nif = searchParams.get("nif");
   const nome = searchParams.get("nome");
   const tipoInstalacao = searchParams.get("tipoInstalacao");
+  const mesInicio = searchParams.get("mesInicio"); // 1-12
+
+  // If mesInicio filter is active, get matching NIFs via raw SQL
+  let nifsComMesInicio: string[] | null = null;
+  if (mesInicio && /^([1-9]|1[0-2])$/.test(mesInicio)) {
+    const rows = await prisma.$queryRaw<{ empresaNif: string }[]>`
+      SELECT DISTINCT "empresaNif"
+      FROM "Instalacao"
+      WHERE EXTRACT(MONTH FROM "dataInicioContrato") = ${parseInt(mesInicio)}
+    `;
+    nifsComMesInicio = rows.map((r) => r.empresaNif);
+  }
 
   const empresas = await prisma.empresa.findMany({
     where: {
@@ -35,7 +47,8 @@ export async function GET(req: NextRequest) {
       ...(tipoInstalacao && {
         instalacoes: { some: { tipoInstalacao: tipoInstalacao as never } },
       }),
-      kanbanCard: null, // apenas empresas livres (não atribuídas)
+      ...(nifsComMesInicio !== null && { nif: { in: nifsComMesInicio } }),
+      kanbanCard: null,
     },
     include: {
       _count: { select: { instalacoes: true } },

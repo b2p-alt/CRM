@@ -4,6 +4,14 @@ import { useRouter, usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
 
 const TIPOS = ["MAT", "AT", "MT", "BTE", "BTN"];
+const MESES = [
+  { val: "1", label: "Janeiro" }, { val: "2", label: "Fevereiro" },
+  { val: "3", label: "Março" }, { val: "4", label: "Abril" },
+  { val: "5", label: "Maio" }, { val: "6", label: "Junho" },
+  { val: "7", label: "Julho" }, { val: "8", label: "Agosto" },
+  { val: "9", label: "Setembro" }, { val: "10", label: "Outubro" },
+  { val: "11", label: "Novembro" }, { val: "12", label: "Dezembro" },
+];
 
 type Props = {
   distritos: string[];
@@ -20,6 +28,7 @@ export default function EmpresasFilters({ distritos, distritosLocalidades, filte
   const [nif, setNif] = useState(filters.nif || "");
   const [nome, setNome] = useState(filters.nome || "");
   const [tipoInstalacao, setTipoInstalacao] = useState(filters.tipoInstalacao || "");
+  const [mesInicio, setMesInicio] = useState(filters.mesInicio || "");
 
   const localidades = distrito ? distritosLocalidades[distrito] || [] : [];
 
@@ -34,11 +43,12 @@ export default function EmpresasFilters({ distritos, distritosLocalidades, filte
     if (nif) params.set("nif", nif);
     if (nome) params.set("nome", nome);
     if (tipoInstalacao) params.set("tipoInstalacao", tipoInstalacao);
+    if (mesInicio) params.set("mesInicio", mesInicio);
     router.push(`${pathname}?${params.toString()}`);
   }
 
   function clearFilters() {
-    setDistrito(""); setLocalidade(""); setNif(""); setNome(""); setTipoInstalacao("");
+    setDistrito(""); setLocalidade(""); setNif(""); setNome(""); setTipoInstalacao(""); setMesInicio("");
     router.push(pathname);
   }
 
@@ -82,6 +92,21 @@ export default function EmpresasFilters({ distritos, distritosLocalidades, filte
           <option value="">Tipo de instalação</option>
           {TIPOS.map((t) => <option key={t} value={t}>{t}</option>)}
         </select>
+      </div>
+      <div className="mt-2">
+        <select
+          value={mesInicio}
+          onChange={(e) => setMesInicio(e.target.value)}
+          className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-full md:w-auto"
+        >
+          <option value="">Mês de início do contrato (todos)</option>
+          {MESES.map((m) => <option key={m.val} value={m.val}>{m.label}</option>)}
+        </select>
+        {mesInicio && (
+          <span className="ml-2 text-xs text-blue-600">
+            Candidatas a renovar em {MESES.find(m => m.val === mesInicio)?.label}
+          </span>
+        )}
       </div>
       <div className="flex gap-2 mt-3">
         <button

@@ -30,45 +30,60 @@ export default async function EmpresaDetailPage({
 
   if (!empresa) notFound();
 
+  // Serialize dates for client components
+  const notasSerialized = empresa.notas.map((n) => ({
+    ...n,
+    createdAt: n.createdAt.toISOString(),
+  }));
+
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white border-b border-gray-200 px-6 py-4 flex items-center gap-4">
-        <Link href="/empresas" className="text-gray-400 hover:text-gray-600 text-sm">← Empresas</Link>
-        <div>
-          <h1 className="text-lg font-semibold text-gray-900">{empresa.nome}</h1>
+        <Link href="/empresas" className="text-gray-400 hover:text-gray-600 text-sm">
+          ← Empresas
+        </Link>
+        <div className="min-w-0">
+          <h1 className="text-lg font-semibold text-gray-900 truncate">{empresa.nome}</h1>
           <p className="text-xs text-gray-400 font-mono">{empresa.nif}</p>
         </div>
         {empresa.kanbanCard && (
-          <span className="ml-auto text-xs bg-orange-100 text-orange-700 px-2 py-1 rounded-full">
-            Kanban: {empresa.kanbanCard.user.nome}
+          <span className="ml-auto text-xs bg-orange-100 text-orange-700 px-2 py-1 rounded-full flex-shrink-0">
+            Kanban · {empresa.kanbanCard.user.nome}
           </span>
         )}
       </header>
 
-      <main className="p-6 max-w-5xl mx-auto space-y-6">
-        {/* Dados da empresa */}
-        <section>
-          <h2 className="text-sm font-semibold text-gray-700 mb-3">Dados da empresa</h2>
-          <EmpresaForm
-            distritos={DISTRITOS}
-            distritosLocalidades={DISTRITOS_LOCALIDADES}
-            empresa={empresa}
-          />
-        </section>
+      <main className="p-6">
+        <div className="grid grid-cols-[3fr_2fr] gap-6 items-start">
+          {/* Left 60%: dados + instalações */}
+          <div className="min-w-0 space-y-5">
+            <section>
+              <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+                Dados da empresa
+              </h2>
+              <EmpresaForm
+                distritos={DISTRITOS}
+                distritosLocalidades={DISTRITOS_LOCALIDADES}
+                empresa={empresa}
+              />
+            </section>
 
-        {/* Instalações */}
-        <section>
-          <h2 className="text-sm font-semibold text-gray-700 mb-3">
-            Instalações ({empresa.instalacoes.length})
-          </h2>
-          <InstalacoesSection empresaNif={nif} instalacoes={empresa.instalacoes} />
-        </section>
+            <section>
+              <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+                Instalações ({empresa.instalacoes.length})
+              </h2>
+              <InstalacoesSection empresaNif={nif} instalacoes={empresa.instalacoes} />
+            </section>
+          </div>
 
-        {/* Notas */}
-        <section>
-          <h2 className="text-sm font-semibold text-gray-700 mb-3">Notas</h2>
-          <NotasSection empresaNif={nif} notas={empresa.notas} />
-        </section>
+          {/* Right 40%: notas */}
+          <div className="min-w-0">
+            <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+              Notas ({empresa.notas.length})
+            </h2>
+            <NotasSection empresaNif={nif} notas={notasSerialized} />
+          </div>
+        </div>
       </main>
     </div>
   );
