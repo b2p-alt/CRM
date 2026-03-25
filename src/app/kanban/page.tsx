@@ -8,10 +8,8 @@ export default async function KanbanPage() {
   const session = await auth();
   if (!session) redirect("/login");
 
-  const isMaster = session.user?.role === "MASTER";
-
   const cards = await prisma.kanbanCard.findMany({
-    where: isMaster ? {} : { userId: session.user!.id! },
+    where: { userId: session.user!.id! },
     include: {
       empresa: {
         include: {
