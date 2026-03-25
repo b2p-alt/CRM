@@ -41,6 +41,16 @@ export default async function DashboardPage() {
             <h2 className="font-semibold text-gray-900">Kanban</h2>
             <p className="text-sm text-gray-500 mt-1">Gerir pipeline comercial</p>
           </Link>
+          {session.user?.role === "MASTER" && (
+            <Link
+              href="/utilizadores"
+              className="bg-white border border-gray-200 rounded-xl p-6 hover:border-blue-300 hover:shadow-sm transition"
+            >
+              <div className="text-2xl mb-2">👥</div>
+              <h2 className="font-semibold text-gray-900">Utilizadores</h2>
+              <p className="text-sm text-gray-500 mt-1">Gerir contas e acessos</p>
+            </Link>
+          )}
         </div>
       </main>
     </div>
