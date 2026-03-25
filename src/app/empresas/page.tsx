@@ -54,6 +54,7 @@ export default async function EmpresasPage({
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-4">
+          <img src="/logo-b2p.png" alt="B2P Energy" style={{height:"65px",width:"auto"}} />
           <Link href="/dashboard" className="text-gray-400 hover:text-gray-600 text-sm">← Dashboard</Link>
           <h1 className="text-lg font-semibold text-gray-900">Empresas</h1>
         </div>
