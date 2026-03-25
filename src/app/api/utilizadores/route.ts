@@ -10,7 +10,7 @@ export async function GET() {
   }
 
   const users = await prisma.user.findMany({
-    select: { id: true, nome: true, email: true, telefone: true, role: true, createdAt: true },
+    select: { id: true, nome: true, email: true, telefone: true, role: true, mustChangePassword: true, createdAt: true },
     orderBy: { nome: "asc" },
   });
 
@@ -25,8 +25,8 @@ export async function POST(req: Request) {
 
   const { nome, email, telefone, password, role } = await req.json();
 
-  if (!nome?.trim() || !email?.trim() || !password?.trim()) {
-    return NextResponse.json({ error: "Nome, email e password são obrigatórios" }, { status: 400 });
+  if (!nome?.trim() || !email?.trim()) {
+    return NextResponse.json({ error: "Nome e email são obrigatórios" }, { status: 400 });
   }
 
   const exists = await prisma.user.findUnique({ where: { email } });
@@ -34,7 +34,8 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Email já registado" }, { status: 409 });
   }
 
-  const hashed = await bcrypt.hash(password, 10);
+  const hasPassword = password?.trim();
+  const hashed = hasPassword ? await bcrypt.hash(password, 10) : await bcrypt.hash(Math.random().toString(36), 10);
 
   const user = await prisma.user.create({
     data: {
@@ -43,8 +44,9 @@ export async function POST(req: Request) {
       telefone: telefone?.trim() || null,
       password: hashed,
       role: role === "MASTER" ? "MASTER" : "AGENTE",
+      mustChangePassword: !hasPassword,
     },
-    select: { id: true, nome: true, email: true, telefone: true, role: true, createdAt: true },
+    select: { id: true, nome: true, email: true, telefone: true, role: true, mustChangePassword: true, createdAt: true },
   });
 
   return NextResponse.json(user, { status: 201 });

@@ -9,6 +9,7 @@ type User = {
   email: string;
   telefone: string | null;
   role: "MASTER" | "AGENTE";
+  mustChangePassword: boolean;
   createdAt: string;
 };
 
@@ -131,13 +132,20 @@ export default function UtilizadoresPage() {
                     <td className="px-4 py-3 text-gray-600">{u.email}</td>
                     <td className="px-4 py-3 text-gray-500">{u.telefone ?? "—"}</td>
                     <td className="px-4 py-3">
-                      <span className={`inline-block text-xs font-semibold px-2 py-0.5 rounded-full ${
-                        u.role === "MASTER"
-                          ? "bg-purple-100 text-purple-700"
-                          : "bg-blue-100 text-blue-700"
-                      }`}>
-                        {u.role === "MASTER" ? "Master" : "Agente"}
-                      </span>
+                      <div className="flex items-center gap-1.5">
+                        <span className={`inline-block text-xs font-semibold px-2 py-0.5 rounded-full ${
+                          u.role === "MASTER"
+                            ? "bg-purple-100 text-purple-700"
+                            : "bg-blue-100 text-blue-700"
+                        }`}>
+                          {u.role === "MASTER" ? "Master" : "Agente"}
+                        </span>
+                        {u.mustChangePassword && (
+                          <span className="inline-block text-xs font-medium px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">
+                            Pendente
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-4 py-3 text-right">
                       <button onClick={() => openEdit(u)}
@@ -182,11 +190,16 @@ export default function UtilizadoresPage() {
                 </div>
 
                 <Field
-                  label={editUser ? "Nova password (deixe em branco para não alterar)" : "Password *"}
+                  label={editUser ? "Nova password (deixe em branco para não alterar)" : "Password (opcional)"}
                   type="password"
                   value={form.password}
                   onChange={(v) => setForm((f) => ({ ...f, password: v }))}
                 />
+                {!editUser && (
+                  <p className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                    Se deixar em branco, o utilizador será notificado para criar a password no primeiro acesso.
+                  </p>
+                )}
 
                 {error && <p className="text-sm text-red-600">{error}</p>}
 
