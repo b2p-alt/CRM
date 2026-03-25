@@ -65,7 +65,7 @@ export type DrawerCard = {
     nome: string; telefone: string | null; email: string | null; morada: string | null;
     distrito: string | null; localidade: string | null; quemAtende: string | null;
     responsavel: string | null; _count: { instalacoes: number };
-    lastContactAt?: string | null;
+    lastContactAt: string | null;
   };
   user: { nome: string }; userId: string;
 };
