@@ -95,7 +95,7 @@ model Instalacao {
   cpe                 String          @unique
   morada              String?
   tipoInstalacao      TipoInstalacao
-  cicloTarifario      CicloTarifario
+  cicloTarifario      CicloTarifario?
   dataInicioContrato  DateTime?
   mesTermino          String?         // ex: "2025-12"
   fornecedor          String?
