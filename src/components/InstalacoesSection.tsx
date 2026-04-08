@@ -43,7 +43,7 @@ export default function InstalacoesSection({ empresaNif, instalacoes: initial }:
     setEditId(inst.id);
     setForm({
       cpe: inst.cpe, morada: inst.morada || "", tipoInstalacao: inst.tipoInstalacao,
-      cicloTarifario: inst.cicloTarifario,
+      cicloTarifario: inst.cicloTarifario ?? "",
       dataInicioContrato: inst.dataInicioContrato ? new Date(inst.dataInicioContrato).toISOString().split("T")[0] : "",
       mesTermino: inst.mesTermino || "", fornecedor: inst.fornecedor || "",
       consumoPonta: String(inst.consumoPonta ?? ""), consumoCheia: String(inst.consumoCheia ?? ""),
