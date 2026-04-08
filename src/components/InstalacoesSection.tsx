@@ -12,7 +12,7 @@ const CICLOS_LABEL: Record<string, string> = {
 
 type Instalacao = {
   id: string; cpe: string; morada?: string | null; tipoInstalacao: string;
-  cicloTarifario: string; dataInicioContrato?: string | Date | null;
+  cicloTarifario: string | null; dataInicioContrato?: string | Date | null;
   mesTermino?: string | null; fornecedor?: string | null;
   consumoPonta?: number | null; consumoCheia?: number | null;
   consumoVazio?: number | null; consumoSVazio?: number | null; consumoAnual?: number | null;
@@ -184,7 +184,7 @@ export default function InstalacoesSection({ empresaNif, instalacoes: initial }:
               <div className="flex items-center gap-2">
                 <span className="font-mono text-xs text-gray-700">{inst.cpe}</span>
                 <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded">{inst.tipoInstalacao}</span>
-                <span className="text-xs bg-gray-200 text-gray-700 px-2 py-0.5 rounded">{CICLOS_LABEL[inst.cicloTarifario]}</span>
+                {inst.cicloTarifario && <span className="text-xs bg-gray-200 text-gray-700 px-2 py-0.5 rounded">{CICLOS_LABEL[inst.cicloTarifario]}</span>}
               </div>
               {inst.morada && <p className="text-xs text-gray-500">{inst.morada}</p>}
               {inst.fornecedor && <p className="text-xs text-gray-500">Fornecedor: {inst.fornecedor}</p>}
