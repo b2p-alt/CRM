@@ -113,6 +113,25 @@ export default function KanbanCardDrawer({
   const canEdit  = isMaster || card.userId === userId;
   const hasAgenda = !!card.agendamentoData;
 
+  // ── Edit nome ─────────────────────────────────────────────
+  const [editingNome, setEditingNome] = useState(false);
+  const [nomeValue, setNomeValue]     = useState(card.empresa.nome);
+  const [savingNome, setSavingNome]   = useState(false);
+
+  const saveNome = async () => {
+    const trimmed = nomeValue.trim();
+    if (!trimmed || trimmed === card.empresa.nome) { setEditingNome(false); return; }
+    setSavingNome(true);
+    await fetch(`/api/empresas/${card.empresaNif}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ nome: trimmed }),
+    });
+    card.empresa.nome = trimmed;
+    setSavingNome(false);
+    setEditingNome(false);
+  };
+
   useEffect(() => {
     setLoadingData(true);
     fetch(`/api/empresas/${card.empresaNif}`)
@@ -245,8 +264,34 @@ export default function KanbanCardDrawer({
 
         {/* Header */}
         <div className="px-6 py-4 border-b border-gray-200 flex items-start justify-between flex-shrink-0">
-          <div>
-            <h2 className="font-semibold text-gray-900 text-base leading-tight">{card.empresa.nome}</h2>
+          <div className="flex-1 min-w-0 mr-4">
+            {editingNome ? (
+              <input
+                autoFocus
+                value={nomeValue}
+                onChange={(e) => setNomeValue(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") { e.preventDefault(); saveNome(); }
+                  if (e.key === "Escape") { setEditingNome(false); setNomeValue(card.empresa.nome); }
+                }}
+                onBlur={saveNome}
+                disabled={savingNome}
+                className="w-full font-semibold text-gray-900 text-base border-b border-blue-400 outline-none bg-transparent pb-0.5"
+              />
+            ) : (
+              <div className="flex items-center gap-1.5 group">
+                <h2 className="font-semibold text-gray-900 text-base leading-tight">{nomeValue}</h2>
+                <button
+                  onClick={() => setEditingNome(true)}
+                  className="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-gray-600 transition-opacity"
+                  title="Editar nome"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor">
+                    <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                  </svg>
+                </button>
+              </div>
+            )}
             <p className="text-xs text-gray-400 mt-0.5">
               <span className="font-mono">{card.empresaNif}</span>
               {(card.empresa.localidade || card.empresa.distrito) && (
@@ -256,7 +301,7 @@ export default function KanbanCardDrawer({
               )}
             </p>
           </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl leading-none ml-4 flex-shrink-0">✕</button>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl leading-none flex-shrink-0">✕</button>
         </div>
 
         {/* Body */}
