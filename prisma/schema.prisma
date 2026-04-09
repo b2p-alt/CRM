@@ -119,6 +119,7 @@ model Instalacao {
 // ─────────────────────────────────────────
 
 enum KanbanColuna {
+  EM_REVISAO
   PRIMEIRO_CONTACTO
   ENVIAR_EMAIL
   EM_CONTACTO

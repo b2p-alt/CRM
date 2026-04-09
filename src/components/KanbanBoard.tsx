@@ -5,9 +5,10 @@ import { useRouter } from "next/navigation";
 import EmpresaPickerModal from "./EmpresaPickerModal";
 import KanbanCardDrawer, { type DrawerCard } from "./KanbanCardDrawer";
 
-type Coluna = "PRIMEIRO_CONTACTO" | "ENVIAR_EMAIL" | "EM_CONTACTO" | "PROPOSTA" | "CLIENTE";
+type Coluna = "EM_REVISAO" | "PRIMEIRO_CONTACTO" | "ENVIAR_EMAIL" | "EM_CONTACTO" | "PROPOSTA" | "CLIENTE";
 
 const COLUNAS: { key: Coluna; label: string; headerColor: string }[] = [
+  { key: "EM_REVISAO",        label: "Em Revisão",  headerColor: "border-gray-400" },
   { key: "PRIMEIRO_CONTACTO", label: "1º Contacto",  headerColor: "border-blue-400" },
   { key: "ENVIAR_EMAIL",      label: "Enviar Email", headerColor: "border-purple-400" },
   { key: "EM_CONTACTO",       label: "Em Contacto",  headerColor: "border-yellow-400" },
@@ -138,7 +139,7 @@ export default function KanbanBoard({
         fetch("/api/kanban", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ empresaNif: nif, coluna: "PRIMEIRO_CONTACTO" }),
+          body: JSON.stringify({ empresaNif: nif, coluna: "EM_REVISAO" }),
         })
       )
     );

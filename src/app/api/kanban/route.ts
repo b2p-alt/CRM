@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
   const card = await prisma.kanbanCard.create({
     data: {
       empresaNif,
-      coluna: coluna || "PRIMEIRO_CONTACTO",
+      coluna: coluna || "EM_REVISAO",
       userId: session.user!.id!,
     },
     include: {

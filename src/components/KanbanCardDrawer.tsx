@@ -5,6 +5,7 @@ import Link from "next/link";
 
 // ─── Constants ────────────────────────────────────────────────
 const COLUNAS = [
+  { key: "EM_REVISAO",        label: "Em Revisão" },
   { key: "PRIMEIRO_CONTACTO", label: "1º Contacto" },
   { key: "ENVIAR_EMAIL",      label: "Enviar Email" },
   { key: "EM_CONTACTO",       label: "Em Contacto" },
