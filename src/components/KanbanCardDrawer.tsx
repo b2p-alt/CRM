@@ -74,7 +74,7 @@ export type DrawerCard = {
 
 // ─── Component ────────────────────────────────────────────────
 export default function KanbanCardDrawer({
-  card, userRole, userId, onClose, onMove, onRemove, onAgendaChange, onNoteAdded,
+  card, userRole, userId, onClose, onMove, onRemove, onAgendaChange, onNoteAdded, onContactSaved,
 }: {
   card: DrawerCard; userRole: string; userId: string;
   onClose: () => void;
@@ -82,6 +82,7 @@ export default function KanbanCardDrawer({
   onRemove: (card: DrawerCard) => void;
   onAgendaChange: (cardId: string, agendamentoData: string | null) => void;
   onNoteAdded?: (cardId: string, createdAt: string) => void;
+  onContactSaved?: (cardId: string, patch: { telefone: string; email: string; quemAtende: string; responsavel: string }) => void;
 }) {
   const [notas, setNotas]           = useState<Nota[]>([]);
   const [instalacoes, setInstalacoes] = useState<Instalacao[]>([]);
@@ -158,11 +159,14 @@ export default function KanbanCardDrawer({
   // ── Contact save ──────────────────────────────────────────
   const saveContact = async () => {
     setContactSaving(true);
-    await fetch(`/api/empresas/${card.empresaNif}`, {
+    const res = await fetch(`/api/empresas/${card.empresaNif}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(contact),
     });
+    if (res.ok) {
+      onContactSaved?.(card.id, contact);
+    }
     setContactSaving(false);
     setContactDirty(false);
   };

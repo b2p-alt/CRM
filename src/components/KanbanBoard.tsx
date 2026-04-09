@@ -118,6 +118,34 @@ export default function KanbanBoard({
     if (openCard?.id === cardId) setOpenCard((c) => c ? { ...c, agendamentoData } : c);
   };
 
+  // ── After contact saved: patch empresa fields in state ───
+  const handleContactSaved = (
+    cardId: string,
+    patch: { telefone: string; email: string; quemAtende: string; responsavel: string }
+  ) => {
+    updateCard(cardId, {
+      empresa: {
+        ...cards.find((c) => c.id === cardId)!.empresa,
+        telefone:    patch.telefone    || null,
+        email:       patch.email       || null,
+        quemAtende:  patch.quemAtende  || null,
+        responsavel: patch.responsavel || null,
+      },
+    });
+    if (openCard?.id === cardId) {
+      setOpenCard((c) => c ? {
+        ...c,
+        empresa: {
+          ...c.empresa,
+          telefone:    patch.telefone    || null,
+          email:       patch.email       || null,
+          quemAtende:  patch.quemAtende  || null,
+          responsavel: patch.responsavel || null,
+        },
+      } : c);
+    }
+  };
+
   // ── After note added: refresh lastContactAt ──────────────
   const handleNoteAdded = (cardId: string, createdAt: string) => {
     updateCard(cardId, {
@@ -273,6 +301,7 @@ export default function KanbanBoard({
           onRemove={removeCard}
           onAgendaChange={handleAgendaChange}
           onNoteAdded={handleNoteAdded}
+          onContactSaved={handleContactSaved}
         />
       )}
     </>
