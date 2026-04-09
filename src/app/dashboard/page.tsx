@@ -51,6 +51,16 @@ export default async function DashboardPage() {
               <p className="text-sm text-gray-500 mt-1">Gerir contas e acessos</p>
             </Link>
           )}
+          {session.user?.role === "MASTER" && (
+            <Link
+              href="/admin/importar"
+              className="bg-white border border-gray-200 rounded-xl p-6 hover:border-blue-300 hover:shadow-sm transition"
+            >
+              <div className="text-2xl mb-2">📥</div>
+              <h2 className="font-semibold text-gray-900">Importar PDF</h2>
+              <p className="text-sm text-gray-500 mt-1">OCR e importação de dados</p>
+            </Link>
+          )}
         </div>
       </main>
     </div>
