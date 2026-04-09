@@ -120,6 +120,7 @@ model Instalacao {
 
 enum KanbanColuna {
   PRIMEIRO_CONTACTO
+  ENVIAR_EMAIL
   EM_CONTACTO
   PROPOSTA
   CLIENTE
