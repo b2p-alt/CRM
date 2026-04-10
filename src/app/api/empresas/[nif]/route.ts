@@ -6,7 +6,10 @@ import { z } from "zod";
 const updateSchema = z.object({
   nome: z.string().min(1).optional(),
   telefone: z.string().optional(),
-  email: z.string().email().optional().or(z.literal("")),
+  email: z.string().optional().refine(
+    (v) => !v || v.split(";").map(s => s.trim()).filter(Boolean).every(s => z.string().email().safeParse(s).success),
+    { message: "Email inválido. Para múltiplos emails use ponto-e-vírgula (ex: a@b.com; c@d.com)" }
+  ),
   morada: z.string().optional(),
   distrito: z.string().optional(),
   localidade: z.string().optional(),

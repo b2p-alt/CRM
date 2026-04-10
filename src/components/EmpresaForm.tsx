@@ -82,7 +82,7 @@ export default function EmpresaForm({ distritos, distritosLocalidades, empresa }
         {field("NIF", "nif", "text", isEdit)}
         {field("Nome da empresa", "nome")}
         {field("Telefone", "telefone")}
-        {field("Email", "email", "email")}
+        {field("Email (separar múltiplos com ;)", "email")}
       </div>
 
       {field("Morada", "morada")}

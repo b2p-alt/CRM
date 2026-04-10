@@ -319,7 +319,7 @@ export default function KanbanCardDrawer({
             <div className="w-[40%] border-r border-gray-100 px-5 py-4 space-y-2.5">
               <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Contacto</p>
               <EditField label="Telefone"    value={contact.telefone}    onChange={(v) => { setContact((c) => ({ ...c, telefone: v }));    setContactDirty(true); }} />
-              <EditField label="Email"       value={contact.email}       onChange={(v) => { setContact((c) => ({ ...c, email: v }));       setContactDirty(true); }} />
+              <EditField label="Email (sep. ; para múltiplos)" value={contact.email} onChange={(v) => { setContact((c) => ({ ...c, email: v })); setContactDirty(true); }} />
               <EditField label="Quem atende" value={contact.quemAtende}  onChange={(v) => { setContact((c) => ({ ...c, quemAtende: v }));  setContactDirty(true); }} />
               <EditField label="Responsável" value={contact.responsavel} onChange={(v) => { setContact((c) => ({ ...c, responsavel: v })); setContactDirty(true); }} />
               {contactDirty && (
