@@ -109,12 +109,21 @@ export default function Step1Upload({ onDone }: {
 
       {error && <p className="text-sm text-red-600 mb-4">{error}</p>}
 
+      {uploading && (
+        <div className="mb-4 bg-blue-50 border border-blue-200 rounded-xl p-4 text-sm text-blue-700">
+          <p className="font-medium mb-1">OCR em curso...</p>
+          <p className="text-xs text-blue-500">
+            A extrair texto do PDF. Não feche esta página. Este processo pode demorar vários minutos consoante o tamanho do ficheiro.
+          </p>
+        </div>
+      )}
+
       <button
         onClick={handleSubmit}
         disabled={!file || !distrito || uploading}
         className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 rounded-lg text-sm disabled:opacity-50 disabled:cursor-not-allowed"
       >
-        {uploading ? "A enviar..." : "Iniciar OCR →"}
+        {uploading ? "A processar OCR..." : "Iniciar OCR →"}
       </button>
     </div>
   );

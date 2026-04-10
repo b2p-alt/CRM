@@ -2,7 +2,7 @@ import { NextRequest } from "next/server";
 import { auth } from "@/auth";
 import { getJob } from "@/lib/importar/job-store";
 
-export const maxDuration = 1800;
+// No maxDuration needed — job is already done when client opens this stream.
 
 export async function GET(req: NextRequest) {
   const session = await auth();

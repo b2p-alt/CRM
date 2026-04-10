@@ -3,7 +3,8 @@ import { auth } from "@/auth";
 import { createJob } from "@/lib/importar/job-store";
 import { runOcrPipeline } from "@/lib/importar/ocr-pipeline";
 
-export const maxDuration = 1800; // 30 min — only valid on VPS, not Vercel
+// Vercel hobby max is 300s; pro is 900s. OCR runs synchronously.
+export const maxDuration = 300;
 
 export async function POST(req: NextRequest) {
   const session = await auth();
@@ -25,8 +26,9 @@ export async function POST(req: NextRequest) {
 
   createJob(jobId, distrito);
 
-  // Fire-and-forget — runs in background while SSE stream reads progress
-  runOcrPipeline(jobId, pdfBuffer).catch(() => {});
+  // Run synchronously so the function doesn't terminate before OCR finishes.
+  // On Vercel, fire-and-forget tasks are killed when the response is sent.
+  await runOcrPipeline(jobId, pdfBuffer);
 
   return NextResponse.json({ jobId });
 }
