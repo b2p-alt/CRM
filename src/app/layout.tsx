@@ -13,8 +13,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "CRM",
+  title: "B2P CRM",
   description: "Sistema de CRM",
+  icons: { icon: "/logo-b2p.png" },
 };
 
 export default function RootLayout({
