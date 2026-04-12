@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { ParsedRecord } from "@/lib/importar/types";
+import { EnrichData } from "@/lib/importar/racius";
 
 type ImportResult = {
   empresasInseridas: number;
@@ -11,11 +12,12 @@ type ImportResult = {
   errors: string[];
 };
 
-export default function Step5Confirmar({ records, distrito, existingNifs, existingCpes, onBack }: {
+export default function Step5Confirmar({ records, distrito, existingNifs, existingCpes, enrichResults, onBack }: {
   records: ParsedRecord[];
   distrito: string;
   existingNifs: string[];
   existingCpes: string[];
+  enrichResults: Record<string, EnrichData>;
   onBack: () => void;
 }) {
   const [importing, setImporting] = useState(false);
@@ -37,7 +39,7 @@ export default function Step5Confirmar({ records, distrito, existingNifs, existi
     const res = await fetch("/api/importar/confirmar", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ records, distrito }),
+      body: JSON.stringify({ records, distrito, enrichResults }),
     });
 
     if (!res.ok) {
@@ -113,6 +115,13 @@ export default function Step5Confirmar({ records, distrito, existingNifs, existi
         <Row label="Total de registos" value={records.length} />
         <Row label="Empresas novas" value={newCount} highlight />
         <Row label="Instalações novas" value={newInstal} highlight />
+        {Object.keys(enrichResults).length > 0 && (
+          <Row
+            label="Contactos enriquecidos (Racius)"
+            value={Object.values(enrichResults).filter(r => r.telefone || r.website).length}
+            highlight
+          />
+        )}
         <Row label="Empresas já existentes" value={existingNifs.length} dim />
         <Row label="Instalações já existentes" value={existingCpes.length} dim />
       </div>

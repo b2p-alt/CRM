@@ -2,10 +2,12 @@
 
 import { useState } from "react";
 import { ParsedRecord } from "@/lib/importar/types";
+import { EnrichData } from "@/lib/importar/racius";
 import Step1Upload from "./Step1Upload";
 import Step2Ocr from "./Step2Ocr";
 import Step3Review from "./Step3Review";
 import Step4Duplicados from "./Step4Duplicados";
+import Step4bEnriquecimento from "./Step4bEnriquecimento";
 import Step5Confirmar from "./Step5Confirmar";
 
 export type WizardState = {
@@ -14,22 +16,23 @@ export type WizardState = {
   records: ParsedRecord[];
   existingNifs: string[];
   existingCpes: string[];
+  enrichResults: Record<string, EnrichData>;
 };
 
-const STEPS = ["Upload", "OCR", "Revisão", "Duplicados", "Importar"];
+const STEPS = ["Upload", "OCR", "Revisão", "Duplicados", "Contactos", "Importar"];
 
 export default function ImportarWizard() {
   const [step, setStep]   = useState(0);
   const [state, setState] = useState<Partial<WizardState>>({});
 
-  function patch(patch: Partial<WizardState>) {
-    setState((s) => ({ ...s, ...patch }));
+  function patch(p: Partial<WizardState>) {
+    setState((s) => ({ ...s, ...p }));
   }
 
   return (
     <div>
       {/* Step indicator */}
-      <div className="flex items-center gap-0 mb-8">
+      <div className="flex items-center gap-0 mb-8 flex-wrap">
         {STEPS.map((label, i) => (
           <div key={i} className="flex items-center">
             <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium transition ${
@@ -47,7 +50,7 @@ export default function ImportarWizard() {
               {label}
             </div>
             {i < STEPS.length - 1 && (
-              <div className={`w-8 h-0.5 mx-1 ${i < step ? "bg-green-300" : "bg-gray-200"}`} />
+              <div className={`w-6 h-0.5 mx-1 ${i < step ? "bg-green-300" : "bg-gray-200"}`} />
             )}
           </div>
         ))}
@@ -81,13 +84,22 @@ export default function ImportarWizard() {
             onBack={() => setStep(2)}
           />
         )}
-        {step === 4 && state.records && state.distrito && (
+        {step === 4 && state.records && (
+          <Step4bEnriquecimento
+            records={state.records}
+            onDone={(enrichResults) => { patch({ enrichResults }); setStep(5); }}
+            onSkip={() => { patch({ enrichResults: {} }); setStep(5); }}
+            onBack={() => setStep(3)}
+          />
+        )}
+        {step === 5 && state.records && state.distrito && (
           <Step5Confirmar
             records={state.records}
             distrito={state.distrito}
             existingNifs={state.existingNifs ?? []}
             existingCpes={state.existingCpes ?? []}
-            onBack={() => setStep(3)}
+            enrichResults={state.enrichResults ?? {}}
+            onBack={() => setStep(4)}
           />
         )}
       </div>

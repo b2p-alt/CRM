@@ -1,4 +1,5 @@
 import { ParsedRecord } from "./types";
+import { EnrichData } from "./racius";
 import { prisma } from "@/lib/prisma";
 import { cleanNipc, cleanCpe, cleanNivel, cleanNome, cleanLocalidade } from "./parser";
 
@@ -13,6 +14,7 @@ export type ImportResult = {
 export async function importRecords(
   records: ParsedRecord[],
   distrito: string,
+  enrichResults: Record<string, EnrichData> = {},
 ): Promise<ImportResult> {
   const result: ImportResult = {
     empresasInseridas: 0,
@@ -22,15 +24,14 @@ export async function importRecords(
     errors: [],
   };
 
-  // Deduplicate by NIF for empresa inserts
   const seenNif = new Set<string>();
-  const empresaUpserts: { nif: string; nome: string; localidade: string | null; distrito: string }[] = [];
+  const empresaUpserts: {
+    nif: string; nome: string; localidade: string | null; distrito: string;
+    telefone: string | null; website: string | null;
+  }[] = [];
   const instalInserts: {
-    cpe: string;
-    nivel: string;
-    cma: number | null;
-    dataInicio: Date | null;
-    empresaNif: string;
+    cpe: string; nivel: string; cma: number | null;
+    dataInicio: Date | null; empresaNif: string;
   }[] = [];
 
   for (const r of records) {
@@ -45,11 +46,14 @@ export async function importRecords(
 
     if (!seenNif.has(nif)) {
       seenNif.add(nif);
+      const enrich = enrichResults[nif];
       empresaUpserts.push({
         nif,
         nome: cleanNome(r.nome) || "Sem nome",
         localidade: cleanLocalidade(r.descPostal),
         distrito,
+        telefone: enrich?.telefone ?? null,
+        website: enrich?.website ?? null,
       });
     }
 
@@ -58,17 +62,19 @@ export async function importRecords(
     if (r.dataInicio && /^\d{4}-\d{2}-\d{2}$/.test(r.dataInicio)) {
       dataInicio = new Date(r.dataInicio);
     }
-
     instalInserts.push({ cpe, nivel, cma: cmaNum, dataInicio, empresaNif: nif });
   }
 
-  // Insert empresas (skip existing)
+  // Insert empresas
   for (const e of empresaUpserts) {
     try {
       await prisma.empresa.upsert({
         where: { nif: e.nif },
-        create: { nif: e.nif, nome: e.nome, localidade: e.localidade, distrito: e.distrito },
-        update: {}, // don't overwrite existing empresa data
+        create: {
+          nif: e.nif, nome: e.nome, localidade: e.localidade,
+          distrito: e.distrito, telefone: e.telefone, website: e.website,
+        },
+        update: {}, // never overwrite manually entered data
       });
       result.empresasInseridas++;
     } catch (err: unknown) {
@@ -78,14 +84,11 @@ export async function importRecords(
     }
   }
 
-  // Insert instalações (skip existing CPE)
+  // Insert instalações
   for (const i of instalInserts) {
     try {
       const existing = await prisma.instalacao.findUnique({ where: { cpe: i.cpe } });
-      if (existing) {
-        result.instalacoesIgnoradas++;
-        continue;
-      }
+      if (existing) { result.instalacoesIgnoradas++; continue; }
       await prisma.instalacao.create({
         data: {
           cpe: i.cpe,
