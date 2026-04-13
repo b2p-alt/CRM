@@ -6,6 +6,7 @@ import Link from "next/link";
 import EmpresaForm from "@/components/EmpresaForm";
 import NotasSection from "@/components/NotasSection";
 import InstalacoesSection from "@/components/InstalacoesSection";
+import EliminarEmpresaButton from "@/components/EliminarEmpresaButton";
 
 export default async function EmpresaDetailPage({
   params,
@@ -47,11 +48,16 @@ export default async function EmpresaDetailPage({
           <h1 className="text-lg font-semibold text-gray-900 truncate">{empresa.nome}</h1>
           <p className="text-xs text-gray-400 font-mono">{empresa.nif}</p>
         </div>
-        {empresa.kanbanCard && (
-          <span className="ml-auto text-xs bg-orange-100 text-orange-700 px-2 py-1 rounded-full flex-shrink-0">
-            Kanban · {empresa.kanbanCard.user.nome}
-          </span>
-        )}
+        <div className="ml-auto flex items-center gap-4 flex-shrink-0">
+          {empresa.kanbanCard && (
+            <span className="text-xs bg-orange-100 text-orange-700 px-2 py-1 rounded-full">
+              Kanban · {empresa.kanbanCard.user.nome}
+            </span>
+          )}
+          {session.user?.role === "MASTER" && (
+            <EliminarEmpresaButton nif={empresa.nif} nome={empresa.nome} />
+          )}
+        </div>
       </header>
 
       <main className="p-6">
