@@ -65,6 +65,13 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
   }
 
   const { nif } = await params;
-  await prisma.empresa.delete({ where: { nif } });
+
+  await prisma.$transaction([
+    prisma.kanbanCard.deleteMany({ where: { empresaNif: nif } }),
+    prisma.nota.deleteMany({ where: { empresaNif: nif } }),
+    prisma.instalacao.deleteMany({ where: { empresaNif: nif } }),
+    prisma.empresa.delete({ where: { nif } }),
+  ]);
+
   return NextResponse.json({ ok: true });
 }
