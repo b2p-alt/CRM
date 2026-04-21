@@ -211,6 +211,8 @@ export default function EnriquecerWizard({ distritos }: { distritos: string[] })
             className="text-xs text-gray-400 hover:text-gray-600">← Voltar</button>
         </div>
 
+        <BtnIniciar count={paraEnriquecer.size} onClick={handleIniciarEnriquecimento} />
+
         <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
           <table className="w-full text-sm">
             <thead className="bg-gray-50 border-b border-gray-200">
@@ -249,10 +251,7 @@ export default function EnriquecerWizard({ distritos }: { distritos: string[] })
           </table>
         </div>
 
-        <button onClick={handleIniciarEnriquecimento} disabled={paraEnriquecer.size === 0}
-          className="bg-blue-600 hover:bg-blue-700 text-white text-sm px-5 py-2 rounded disabled:opacity-40">
-          Iniciar enriquecimento ({paraEnriquecer.size} empresa{paraEnriquecer.size !== 1 ? "s" : ""})
-        </button>
+        <BtnIniciar count={paraEnriquecer.size} onClick={handleIniciarEnriquecimento} />
       </div>
     );
   }
@@ -293,6 +292,8 @@ export default function EnriquecerWizard({ distritos }: { distritos: string[] })
             className="text-xs text-gray-400 hover:underline">Limpar seleção</button>
         </div>
       </div>
+
+      <BtnAplicar count={selectedWithData} applying={applying} onClick={handleAplicar} onReset={reset} />
 
       <div className="bg-white border border-gray-200 rounded-lg overflow-auto">
         <table className="w-full text-sm">
@@ -364,3 +365,24 @@ export default function EnriquecerWizard({ distritos }: { distritos: string[] })
 }
 
 function sleep(ms: number) { return new Promise(r => setTimeout(r, ms)); }
+
+function BtnIniciar({ count, onClick }: { count: number; onClick: () => void }) {
+  return (
+    <button onClick={onClick} disabled={count === 0}
+      className="bg-blue-600 hover:bg-blue-700 text-white text-sm px-5 py-2 rounded disabled:opacity-40">
+      Iniciar enriquecimento ({count} empresa{count !== 1 ? "s" : ""})
+    </button>
+  );
+}
+
+function BtnAplicar({ count, applying, onClick, onReset }: { count: number; applying: boolean; onClick: () => void; onReset: () => void }) {
+  return (
+    <div className="flex gap-3">
+      <button onClick={onClick} disabled={applying || count === 0}
+        className="bg-green-600 hover:bg-green-700 text-white text-sm px-5 py-2 rounded disabled:opacity-40">
+        {applying ? "A aplicar..." : `Aplicar ${count} atualização${count !== 1 ? "s" : ""}`}
+      </button>
+      <button onClick={onReset} className="text-sm text-gray-500 hover:text-gray-700">Recomeçar</button>
+    </div>
+  );
+}
