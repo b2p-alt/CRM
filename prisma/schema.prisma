@@ -52,6 +52,9 @@ model Empresa {
   rascunho        Boolean  @default(false)
   importProblemas String?  // razões de importação problemática (JSON)
 
+  enriquecimentoStatus String?  // "encontrado" | "sem_contactos" | "sem_dados" | "nif_invalido"
+  enriquecimentoRaw    String?  // JSON raw da resposta NIF.pt
+
   notas        Nota[]
   instalacoes  Instalacao[]
   kanbanCard   KanbanCard?
