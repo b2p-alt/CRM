@@ -65,6 +65,7 @@ export default function EnriquecerWizard({ distritos }: { distritos: string[] })
   const [selected, setSelected]   = useState<Set<string>>(new Set());
   const [atualizadas, setAtualizadas] = useState(0);
   const [applying, setApplying]   = useState(false);
+  const [applyProgress, setApplyProgress] = useState({ done: 0, total: 0 });
   const [eliminando, setEliminando] = useState(false);
 
   const stopRef = useRef(false);
@@ -151,14 +152,25 @@ export default function EnriquecerWizard({ distritos }: { distritos: string[] })
     setApplying(true);
     const selecionados = results.filter(r => selected.has(r.nif) && r.nifStatus === "encontrado");
     const todos = results.map(r => ({ nif: r.nif, nifStatus: r.nifStatus, raw: r.raw }));
+    const BATCH = 50;
+    const total = Math.max(selecionados.length, todos.length);
+    setApplyProgress({ done: 0, total });
+
+    let totalAtualizadas = 0;
     try {
-      const res = await fetch("/api/admin/enriquecer/aplicar", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ selecionados, todos }),
-      });
-      const data = await res.json();
-      setAtualizadas(data.atualizadas ?? 0);
+      for (let i = 0; i < Math.max(selecionados.length, todos.length); i += BATCH) {
+        const batchSel  = selecionados.slice(i, i + BATCH);
+        const batchTodos = todos.slice(i, i + BATCH);
+        const res = await fetch("/api/admin/enriquecer/aplicar", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ selecionados: batchSel, todos: batchTodos }),
+        });
+        const data = await res.json();
+        totalAtualizadas += data.atualizadas ?? 0;
+        setApplyProgress({ done: Math.min(i + BATCH, total), total });
+      }
+      setAtualizadas(totalAtualizadas);
       setStep("done");
     } finally { setApplying(false); }
   }
@@ -349,7 +361,7 @@ export default function EnriquecerWizard({ distritos }: { distritos: string[] })
           </div>
         </div>
 
-        <BtnAplicar count={selectedWithData} applying={applying} onClick={handleAplicar} onReset={reset} />
+        <BtnAplicar count={selectedWithData} applying={applying} applyProgress={applyProgress} onClick={handleAplicar} onReset={reset} />
 
         {/* Results with data */}
         {withData.length > 0 && (
@@ -391,7 +403,7 @@ export default function EnriquecerWizard({ distritos }: { distritos: string[] })
           </div>
         )}
 
-        <BtnAplicar count={selectedWithData} applying={applying} onClick={handleAplicar} onReset={reset} />
+        <BtnAplicar count={selectedWithData} applying={applying} applyProgress={applyProgress} onClick={handleAplicar} onReset={reset} />
 
         {/* Error report */}
         {(nifInvalido.length > 0 || semDados.length > 0 || semContact.length > 0) && (
@@ -463,14 +475,31 @@ function BtnIniciar({ count, onClick }: { count: number; onClick: () => void }) 
   );
 }
 
-function BtnAplicar({ count, applying, onClick, onReset }: { count: number; applying: boolean; onClick: () => void; onReset: () => void }) {
+function BtnAplicar({ count, applying, applyProgress, onClick, onReset }: {
+  count: number; applying: boolean;
+  applyProgress: { done: number; total: number };
+  onClick: () => void; onReset: () => void;
+}) {
+  const pct = applyProgress.total > 0 ? Math.round((applyProgress.done / applyProgress.total) * 100) : 0;
   return (
-    <div className="flex gap-3">
-      <button onClick={onClick} disabled={applying || count === 0}
-        className="bg-green-600 hover:bg-green-700 text-white text-sm px-5 py-2 rounded disabled:opacity-40">
-        {applying ? "A aplicar..." : `Aplicar ${count} atualização${count !== 1 ? "s" : ""}`}
-      </button>
-      <button onClick={onReset} className="text-sm text-gray-500 hover:text-gray-700">Recomeçar</button>
+    <div className="space-y-2">
+      <div className="flex gap-3">
+        <button onClick={onClick} disabled={applying || count === 0}
+          className="bg-green-600 hover:bg-green-700 text-white text-sm px-5 py-2 rounded disabled:opacity-40">
+          {applying
+            ? `A aplicar... ${applyProgress.done} / ${applyProgress.total}`
+            : `Aplicar ${count} atualização${count !== 1 ? "s" : ""}`}
+        </button>
+        <button onClick={onReset} disabled={applying} className="text-sm text-gray-500 hover:text-gray-700 disabled:opacity-40">Recomeçar</button>
+      </div>
+      {applying && applyProgress.total > 0 && (
+        <div className="w-full max-w-sm">
+          <div className="w-full bg-gray-200 rounded-full h-2">
+            <div className="bg-green-500 h-2 rounded-full transition-all duration-300" style={{ width: `${pct}%` }} />
+          </div>
+          <p className="text-xs text-gray-400 mt-1">{pct}% concluído</p>
+        </div>
+      )}
     </div>
   );
 }
