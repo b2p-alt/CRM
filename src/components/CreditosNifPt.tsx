@@ -4,6 +4,7 @@ import { useState } from "react";
 
 type Saldo = {
   monthly?: number; daily?: number; hourly?: number; minute?: number; credits?: number;
+  _raw?: string;
 };
 type MbRef = { entity: string; reference: string; amount: string };
 
@@ -22,11 +23,23 @@ export default function CreditosNifPt() {
   async function loadSaldo() {
     setLoadingSaldo(true);
     setSaldo(null);
+    setError("");
     try {
       const res = await fetch("/api/admin/enriquecer/creditos");
       const data = await res.json();
-      if (data.error) { setError(data.error); return; }
-      setSaldo(data);
+      if (!res.ok || data.error) { setError(data.error || `Erro ${res.status}`); return; }
+      // Normalize: API may return fields at root or nested
+      setSaldo({
+        monthly:  data.monthly  ?? data.monthly_limit  ?? undefined,
+        daily:    data.daily    ?? data.daily_limit    ?? undefined,
+        hourly:   data.hourly   ?? data.hourly_limit   ?? undefined,
+        minute:   data.minute   ?? data.minute_limit   ?? undefined,
+        credits:  data.credits  ?? data.paid_credits   ?? undefined,
+        // store raw so we can show it if nothing matched
+        _raw: JSON.stringify(data),
+      } as Saldo);
+    } catch (e) {
+      setError(String(e));
     } finally { setLoadingSaldo(false); }
   }
 
@@ -41,8 +54,8 @@ export default function CreditosNifPt() {
         body: JSON.stringify({ amount: Number(amount), invoiceName, invoiceNif }),
       });
       const data = await res.json();
-      if (data.error) { setError(data.error); return; }
-      setMbRef(data.mb);
+      if (!res.ok || data.error) { setError(data.error || `Erro ${res.status}`); return; }
+      setMbRef(data.mb ?? data);
     } finally { setLoading(false); }
   }
 
@@ -52,15 +65,14 @@ export default function CreditosNifPt() {
         <div className="flex items-center gap-3">
           <span className="text-sm font-medium text-gray-700">Créditos NIF.pt</span>
           {saldo !== null && (
-            <div className="flex gap-3 text-xs text-gray-500">
-              {saldo.credits !== undefined && (
-                <span className="bg-blue-50 text-blue-700 px-2 py-0.5 rounded font-medium">
-                  {saldo.credits} créditos pagos
-                </span>
-              )}
+            <div className="flex flex-wrap gap-3 text-xs text-gray-500">
+              {saldo.credits  !== undefined && <span className="bg-blue-50 text-blue-700 px-2 py-0.5 rounded font-medium">{saldo.credits} créditos pagos</span>}
               {saldo.monthly  !== undefined && <span>Mensal: {saldo.monthly}</span>}
               {saldo.daily    !== undefined && <span>Diário: {saldo.daily}</span>}
               {saldo.hourly   !== undefined && <span>Hora: {saldo.hourly}</span>}
+              {saldo.credits === undefined && saldo.monthly === undefined && saldo._raw && (
+                <span className="text-gray-400 font-mono">{saldo._raw}</span>
+              )}
             </div>
           )}
         </div>
