@@ -9,8 +9,8 @@ type Props = {
   isMaster?: boolean;
   empresa?: {
     nif: string; nome: string; telefone?: string | null; email?: string | null;
-    morada?: string | null; distrito?: string | null; localidade?: string | null;
-    quemAtende?: string | null; responsavel?: string | null;
+    website?: string | null; morada?: string | null; distrito?: string | null;
+    localidade?: string | null; quemAtende?: string | null; responsavel?: string | null;
   };
 };
 
@@ -23,6 +23,7 @@ export default function EmpresaForm({ distritos, distritosLocalidades, empresa, 
     nome: empresa?.nome || "",
     telefone: empresa?.telefone || "",
     email: empresa?.email || "",
+    website: empresa?.website || "",
     morada: empresa?.morada || "",
     distrito: empresa?.distrito || "",
     localidade: empresa?.localidade || "",
@@ -93,6 +94,7 @@ export default function EmpresaForm({ distritos, distritosLocalidades, empresa, 
         {field("Email (separar múltiplos com ;)", "email")}
       </div>
 
+      {field("Website", "website")}
       {field("Morada", "morada")}
 
       <div className="grid grid-cols-2 gap-4">
