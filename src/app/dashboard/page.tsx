@@ -61,6 +61,16 @@ export default async function DashboardPage() {
               <p className="text-sm text-gray-500 mt-1">OCR e importação de dados</p>
             </Link>
           )}
+          {session.user?.role === "MASTER" && (
+            <Link
+              href="/admin/rascunhos"
+              className="bg-white border border-gray-200 rounded-xl p-6 hover:border-orange-300 hover:shadow-sm transition"
+            >
+              <div className="text-2xl mb-2">📋</div>
+              <h2 className="font-semibold text-gray-900">Rascunhos</h2>
+              <p className="text-sm text-gray-500 mt-1">Rever e confirmar dados importados</p>
+            </Link>
+          )}
         </div>
       </main>
     </div>

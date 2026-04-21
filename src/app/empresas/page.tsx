@@ -37,6 +37,7 @@ export default async function EmpresasPage({
 
   const empresas = await prisma.empresa.findMany({
     where: {
+      rascunho: false,
       ...(filters.distrito && { distrito: filters.distrito }),
       ...(filters.localidade && { localidade: filters.localidade }),
       ...(filters.nif && { nif: { contains: filters.nif, mode: "insensitive" } }),

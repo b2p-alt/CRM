@@ -49,6 +49,9 @@ model Empresa {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
+  rascunho        Boolean  @default(false)
+  importProblemas String?  // razões de importação problemática (JSON)
+
   notas        Nota[]
   instalacoes  Instalacao[]
   kanbanCard   KanbanCard?

@@ -43,6 +43,7 @@ export async function GET(req: NextRequest) {
 
   const empresas = await prisma.empresa.findMany({
     where: {
+      rascunho: false,
       ...(distrito && { distrito }),
       ...(localidade && { localidade }),
       ...(nif && { nif: { contains: nif, mode: "insensitive" } }),
