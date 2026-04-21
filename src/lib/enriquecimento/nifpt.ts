@@ -25,9 +25,10 @@ export async function lookupNif(nif9: string): Promise<NifPtResult> {
     return { found: false, telefone: null, email: null, website: null, nome: null, morada: null, localidade: null, error: String(e) };
   }
 
-  // API returns { resultado: "1", records: { ... } } or error object
+  // API returns { resultado: "1"/"success", records: { ... } } or error
   const resultado = String(data.resultado ?? data.result ?? "");
-  if (resultado !== "1") {
+  const isSuccess = resultado === "1" || resultado === "success";
+  if (!isSuccess) {
     return { found: false, telefone: null, email: null, website: null, nome: null, morada: null, localidade: null, raw: data, error: `resultado=${resultado}` };
   }
 
