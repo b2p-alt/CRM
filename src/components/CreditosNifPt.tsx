@@ -3,8 +3,7 @@
 import { useState } from "react";
 
 type Saldo = {
-  monthly?: number; daily?: number; hourly?: number; minute?: number; credits?: number;
-  _raw?: string;
+  monthly?: number; daily?: number; hourly?: number; minute?: number; paid?: number;
 };
 type MbRef = { entity: string; reference: string; amount: string };
 
@@ -28,16 +27,15 @@ export default function CreditosNifPt() {
       const res = await fetch("/api/admin/enriquecer/creditos");
       const data = await res.json();
       if (!res.ok || data.error) { setError(data.error || `Erro ${res.status}`); return; }
-      // Normalize: API may return fields at root or nested
+      // Response: {"credits":{"month":1000,"day":100,"hour":10,"minute":1,"paid":1100}}
+      const c = data.credits ?? {};
       setSaldo({
-        monthly:  data.monthly  ?? data.monthly_limit  ?? undefined,
-        daily:    data.daily    ?? data.daily_limit    ?? undefined,
-        hourly:   data.hourly   ?? data.hourly_limit   ?? undefined,
-        minute:   data.minute   ?? data.minute_limit   ?? undefined,
-        credits:  data.credits  ?? data.paid_credits   ?? undefined,
-        // store raw so we can show it if nothing matched
-        _raw: JSON.stringify(data),
-      } as Saldo);
+        monthly: c.month   ?? c.monthly  ?? undefined,
+        daily:   c.day     ?? c.daily    ?? undefined,
+        hourly:  c.hour    ?? c.hourly   ?? undefined,
+        minute:  c.minute  ?? undefined,
+        paid:    c.paid    ?? undefined,
+      });
     } catch (e) {
       setError(String(e));
     } finally { setLoadingSaldo(false); }
@@ -66,13 +64,11 @@ export default function CreditosNifPt() {
           <span className="text-sm font-medium text-gray-700">Créditos NIF.pt</span>
           {saldo !== null && (
             <div className="flex flex-wrap gap-3 text-xs text-gray-500">
-              {saldo.credits  !== undefined && <span className="bg-blue-50 text-blue-700 px-2 py-0.5 rounded font-medium">{saldo.credits} créditos pagos</span>}
+              {saldo.paid     !== undefined && <span className="bg-blue-50 text-blue-700 px-2 py-0.5 rounded font-medium">{saldo.paid} créditos pagos</span>}
               {saldo.monthly  !== undefined && <span>Mensal: {saldo.monthly}</span>}
               {saldo.daily    !== undefined && <span>Diário: {saldo.daily}</span>}
               {saldo.hourly   !== undefined && <span>Hora: {saldo.hourly}</span>}
-              {saldo.credits === undefined && saldo.monthly === undefined && saldo._raw && (
-                <span className="text-gray-400 font-mono">{saldo._raw}</span>
-              )}
+              {saldo.minute   !== undefined && <span>Minuto: {saldo.minute}</span>}
             </div>
           )}
         </div>
