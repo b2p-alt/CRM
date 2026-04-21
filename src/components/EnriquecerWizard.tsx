@@ -14,7 +14,7 @@ type EnrichRecord = {
   found: boolean; error?: string;
 };
 
-type Step = "config" | "running" | "review" | "done";
+type Step = "config" | "selecionar" | "running" | "review" | "done";
 
 const FILTRO_LABELS: Record<Filtro, string> = {
   ambos:        "Sem telefone E sem email",
@@ -36,12 +36,14 @@ export default function EnriquecerWizard({ distritos }: { distritos: string[] })
   const [count, setCount]     = useState<number | null>(null);
   const [loadingCount, setLoadingCount] = useState(false);
 
-  const [lista, setLista]     = useState<Empresa[]>([]);
-  const [progress, setProgress] = useState({ done: 0, total: 0, nome: "" });
-  const [results, setResults] = useState<EnrichRecord[]>([]);
-  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [lista, setLista]         = useState<Empresa[]>([]);
+  const [paraEnriquecer, setParaEnriquecer] = useState<Set<string>>(new Set());
+  const [loadingLista, setLoadingLista] = useState(false);
+  const [progress, setProgress]   = useState({ done: 0, total: 0, nome: "" });
+  const [results, setResults]     = useState<EnrichRecord[]>([]);
+  const [selected, setSelected]   = useState<Set<string>>(new Set());
   const [atualizadas, setAtualizadas] = useState(0);
-  const [applying, setApplying] = useState(false);
+  const [applying, setApplying]   = useState(false);
 
   const stopRef = useRef(false);
 
@@ -55,15 +57,24 @@ export default function EnriquecerWizard({ distritos }: { distritos: string[] })
     setLoadingCount(false);
   }
 
-  async function handleStart() {
-    stopRef.current = false;
+  async function handleCarregarLista() {
+    setLoadingLista(true);
     const p = new URLSearchParams({ filtro });
     if (distrito) p.set("distrito", distrito);
     const res = await fetch(`/api/admin/enriquecer/lista?${p}`);
     const empresas: Empresa[] = await res.json();
-    if (!empresas.length) { alert("Nenhuma empresa encontrada."); return; }
-
+    if (!empresas.length) { alert("Nenhuma empresa encontrada."); setLoadingLista(false); return; }
     setLista(empresas);
+    setParaEnriquecer(new Set(empresas.map(e => e.nif)));
+    setLoadingLista(false);
+    setStep("selecionar");
+  }
+
+  async function handleIniciarEnriquecimento() {
+    stopRef.current = false;
+    const empresas = lista.filter(e => paraEnriquecer.has(e.nif));
+    if (!empresas.length) return;
+
     setProgress({ done: 0, total: empresas.length, nome: "" });
     setResults([]);
     setStep("running");
@@ -101,8 +112,6 @@ export default function EnriquecerWizard({ distritos }: { distritos: string[] })
     }
 
     setProgress(p => ({ ...p, done: p.total, nome: "" }));
-
-    // Pre-select rows with useful data found
     const autoSelect = new Set(
       collected.filter(r => r.found && (r.telefoneEncontrado || r.emailEncontrado || r.websiteEncontrado))
                .map(r => r.nif)
@@ -126,7 +135,7 @@ export default function EnriquecerWizard({ distritos }: { distritos: string[] })
     } finally { setApplying(false); }
   }
 
-  function reset() { setStep("config"); setResults([]); setSelected(new Set()); setAtualizadas(0); setCount(null); }
+  function reset() { setStep("config"); setLista([]); setParaEnriquecer(new Set()); setResults([]); setSelected(new Set()); setAtualizadas(0); setCount(null); }
 
   const foundCount = results.filter(r => r.found).length;
   const selectedWithData = [...selected].filter(nif => {
@@ -178,12 +187,75 @@ export default function EnriquecerWizard({ distritos }: { distritos: string[] })
         </div>
       )}
 
-      <button onClick={handleStart} disabled={loadingCount || count === 0}
+      <button onClick={handleCarregarLista} disabled={loadingLista || loadingCount || count === 0}
         className="bg-blue-600 hover:bg-blue-700 text-white text-sm px-5 py-2 rounded disabled:opacity-40 w-full">
-        {`Iniciar enriquecimento${count !== null ? ` (${count} empresas)` : ""}`}
+        {loadingLista ? "A carregar lista..." : `Ver empresas e selecionar${count !== null ? ` (${count})` : ""}`}
       </button>
     </div>
   );
+
+  // ── Selecionar ────────────────────────────────────────────────────────────
+  if (step === "selecionar") {
+    const allSelected = lista.every(e => paraEnriquecer.has(e.nif));
+    const someSelected = lista.some(e => paraEnriquecer.has(e.nif));
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center justify-between flex-wrap gap-2">
+          <div>
+            <h2 className="font-semibold text-gray-900">2. Selecionar empresas a enriquecer</h2>
+            <p className="text-xs text-gray-500 mt-0.5">
+              {paraEnriquecer.size} de {lista.length} selecionadas · cada pedido consome 1 crédito NIF.pt
+            </p>
+          </div>
+          <button onClick={() => { setStep("config"); }}
+            className="text-xs text-gray-400 hover:text-gray-600">← Voltar</button>
+        </div>
+
+        <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+          <table className="w-full text-sm">
+            <thead className="bg-gray-50 border-b border-gray-200">
+              <tr>
+                <th className="px-4 py-2 w-10">
+                  <input type="checkbox"
+                    checked={allSelected}
+                    ref={el => { if (el) el.indeterminate = someSelected && !allSelected; }}
+                    onChange={() => setParaEnriquecer(allSelected ? new Set() : new Set(lista.map(e => e.nif)))}
+                    className="cursor-pointer" />
+                </th>
+                <th className="text-left px-4 py-2 text-xs font-semibold text-gray-500 uppercase">Empresa</th>
+                <th className="text-left px-4 py-2 text-xs font-semibold text-gray-500 uppercase w-32">Distrito</th>
+                <th className="text-left px-4 py-2 text-xs font-semibold text-gray-500 uppercase w-28">Telefone atual</th>
+                <th className="text-left px-4 py-2 text-xs font-semibold text-gray-500 uppercase w-40">Email atual</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {lista.map(e => (
+                <tr key={e.nif} onClick={() => setParaEnriquecer(prev => {
+                  const n = new Set(prev); n.has(e.nif) ? n.delete(e.nif) : n.add(e.nif); return n;
+                })} className="hover:bg-gray-50 cursor-pointer">
+                  <td className="px-4 py-2 text-center">
+                    <input type="checkbox" checked={paraEnriquecer.has(e.nif)} readOnly className="pointer-events-none" />
+                  </td>
+                  <td className="px-4 py-2">
+                    <div className="font-medium text-gray-900">{e.nome}</div>
+                    <div className="text-xs text-gray-400 font-mono">{e.nif}</div>
+                  </td>
+                  <td className="px-4 py-2 text-xs text-gray-500">—</td>
+                  <td className="px-4 py-2 text-xs text-gray-400">{e.telefone ?? "—"}</td>
+                  <td className="px-4 py-2 text-xs text-gray-400">{e.email ?? "—"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        <button onClick={handleIniciarEnriquecimento} disabled={paraEnriquecer.size === 0}
+          className="bg-blue-600 hover:bg-blue-700 text-white text-sm px-5 py-2 rounded disabled:opacity-40">
+          Iniciar enriquecimento ({paraEnriquecer.size} empresa{paraEnriquecer.size !== 1 ? "s" : ""})
+        </button>
+      </div>
+    );
+  }
 
   // ── Running ───────────────────────────────────────────────────────────────
   if (step === "running") return (
