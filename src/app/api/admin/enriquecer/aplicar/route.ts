@@ -49,6 +49,7 @@ export async function POST(req: NextRequest) {
         data: {
           enriquecimentoStatus: r.nifStatus,
           enriquecimentoRaw: r.raw ? JSON.stringify(r.raw) : null,
+          enriquecimentoAt: new Date(),
         },
       });
     }
