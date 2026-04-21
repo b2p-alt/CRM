@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 type Props = {
   distritos: string[];
   distritosLocalidades: Record<string, string[]>;
+  isMaster?: boolean;
   empresa?: {
     nif: string; nome: string; telefone?: string | null; email?: string | null;
     morada?: string | null; distrito?: string | null; localidade?: string | null;
@@ -13,7 +14,7 @@ type Props = {
   };
 };
 
-export default function EmpresaForm({ distritos, distritosLocalidades, empresa }: Props) {
+export default function EmpresaForm({ distritos, distritosLocalidades, empresa, isMaster }: Props) {
   const router = useRouter();
   const isEdit = !!empresa;
 
@@ -59,7 +60,9 @@ export default function EmpresaForm({ distritos, distritosLocalidades, empresa }
       return;
     }
 
-    router.push(isEdit ? `/empresas/${empresa.nif}` : "/empresas");
+    const saved = await res.json();
+    const redirectNif = saved?.nif || empresa?.nif;
+    router.push(isEdit ? `/empresas/${encodeURIComponent(redirectNif)}` : "/empresas");
     router.refresh();
   }
 
@@ -79,7 +82,12 @@ export default function EmpresaForm({ distritos, distritosLocalidades, empresa }
   return (
     <form onSubmit={handleSubmit} className="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
       <div className="grid grid-cols-2 gap-4">
-        {field("NIF", "nif", "text", isEdit)}
+        <div>
+          {field("NIF", "nif", "text", isEdit && !isMaster)}
+          {isEdit && isMaster && form.nif !== empresa?.nif && (
+            <p className="text-xs text-orange-600 mt-1">O NIF será alterado e todos os registos associados migrados.</p>
+          )}
+        </div>
         {field("Nome da empresa", "nome")}
         {field("Telefone", "telefone")}
         {field("Email (separar múltiplos com ;)", "email")}

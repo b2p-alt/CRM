@@ -422,7 +422,7 @@ export default function EnriquecerWizard({ distritos }: { distritos: string[] })
                 title="NIF inválido / empresa inexistente"
                 records={nifInvalido}
                 color="red"
-                onEliminar={() => handleEliminar(nifInvalido.map(r => r.nif))}
+                onEliminar={(nifs) => handleEliminar(nifs)}
                 eliminando={eliminando}
               />
             )}
@@ -512,16 +512,27 @@ function ErrorGroup({
   title: string;
   records: EnrichRecordLike[];
   color: "red" | "yellow" | "gray";
-  onEliminar?: () => void;
+  onEliminar?: (nifs: string[]) => void;
   eliminando?: boolean;
 }) {
   const [open, setOpen] = useState(false);
+  const [checked, setChecked] = useState<Set<string>>(new Set(records.map(r => r.nif)));
+
   const colorMap = {
     red:    { badge: "bg-red-100 text-red-800",    dot: "bg-red-400" },
     yellow: { badge: "bg-yellow-100 text-yellow-800", dot: "bg-yellow-400" },
     gray:   { badge: "bg-gray-100 text-gray-700",  dot: "bg-gray-300" },
   };
   const c = colorMap[color];
+  const allChecked = records.every(r => checked.has(r.nif));
+  const someChecked = records.some(r => checked.has(r.nif));
+
+  function toggleRow(nif: string) {
+    setChecked(prev => { const n = new Set(prev); n.has(nif) ? n.delete(nif) : n.add(nif); return n; });
+  }
+  function toggleAll() {
+    setChecked(allChecked ? new Set() : new Set(records.map(r => r.nif)));
+  }
 
   return (
     <div className="border-t border-orange-100">
@@ -541,17 +552,22 @@ function ErrorGroup({
         <div className="px-4 pb-4 space-y-2">
           {onEliminar && (
             <button
-              onClick={onEliminar}
-              disabled={eliminando}
+              onClick={() => onEliminar([...checked])}
+              disabled={eliminando || checked.size === 0}
               className="bg-red-600 hover:bg-red-700 text-white text-xs px-4 py-1.5 rounded disabled:opacity-40"
             >
-              {eliminando ? "A eliminar..." : `Eliminar ${records.length} empresa${records.length !== 1 ? "s" : ""} da base`}
+              {eliminando ? "A eliminar..." : `Eliminar ${checked.size} empresa${checked.size !== 1 ? "s" : ""} da base`}
             </button>
           )}
           <div className="border border-gray-200 rounded overflow-hidden">
             <table className="w-full text-xs">
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
+                  <th className="px-3 py-1.5 w-8">
+                    <input type="checkbox" checked={allChecked}
+                      ref={el => { if (el) el.indeterminate = someChecked && !allChecked; }}
+                      onChange={toggleAll} className="cursor-pointer" />
+                  </th>
                   <th className="text-left px-3 py-1.5 font-semibold text-gray-500 uppercase">Empresa</th>
                   <th className="text-left px-3 py-1.5 font-semibold text-gray-500 uppercase w-40">NIF</th>
                   <th className="text-left px-3 py-1.5 font-semibold text-gray-500 uppercase">Erro</th>
@@ -559,7 +575,10 @@ function ErrorGroup({
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {records.map(r => (
-                  <tr key={r.nif}>
+                  <tr key={r.nif} className="hover:bg-gray-50 cursor-pointer" onClick={() => toggleRow(r.nif)}>
+                    <td className="px-3 py-1.5 text-center">
+                      <input type="checkbox" checked={checked.has(r.nif)} readOnly className="pointer-events-none" />
+                    </td>
                     <td className="px-3 py-1.5 text-gray-800">{r.nome}</td>
                     <td className="px-3 py-1.5 font-mono text-gray-500">{r.nif}</td>
                     <td className="px-3 py-1.5 text-gray-400">{r.error ?? "—"}</td>

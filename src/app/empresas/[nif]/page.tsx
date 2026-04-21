@@ -72,6 +72,7 @@ export default async function EmpresaDetailPage({
                 distritos={DISTRITOS}
                 distritosLocalidades={DISTRITOS_LOCALIDADES}
                 empresa={empresa}
+                isMaster={session.user?.role === "MASTER"}
               />
             </section>
 
