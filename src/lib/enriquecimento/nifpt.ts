@@ -32,19 +32,21 @@ export async function lookupNif(nif9: string): Promise<NifPtResult> {
     return { found: false, telefone: null, email: null, website: null, nome: null, morada: null, localidade: null, raw: data, error: `resultado=${resultado}` };
   }
 
-  // Records can be nested under "records" or directly in root
-  const r = (typeof data.records === "object" && data.records !== null ? data.records : data) as Record<string, unknown>;
+  // Response: { resultado: "success", records: { "123456789": { contacts: { phone, email, website }, title, address, city } } }
+  const recordsMap = (data.records ?? {}) as Record<string, Record<string, unknown>>;
+  const record     = Object.values(recordsMap)[0] ?? {} as Record<string, unknown>;
+  const contacts   = (record.contacts ?? {}) as Record<string, unknown>;
 
   const clean = (v: unknown) => (typeof v === "string" && v.trim() ? v.trim() : null);
 
   return {
     found: true,
-    telefone: clean(r.telefone),
-    email: clean(r.email),
-    website: clean(r.website) ?? clean(r.url),
-    nome: clean(r.nome),
-    morada: clean(r.morada),
-    localidade: clean(r.localidade),
+    telefone: clean(contacts.phone)   ?? clean(contacts.telefone),
+    email:    clean(contacts.email),
+    website:  clean(contacts.website) ?? clean(contacts.url),
+    nome:     clean(record.title)     ?? clean(record.nome),
+    morada:   clean(record.address)   ?? clean(record.morada),
+    localidade: clean(record.city)    ?? clean(record.localidade),
     raw: data,
   };
 }
