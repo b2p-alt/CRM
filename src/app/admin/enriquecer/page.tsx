@@ -2,6 +2,7 @@ import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import EnriquecerWizard from "@/components/EnriquecerWizard";
+import CreditosNifPt from "@/components/CreditosNifPt";
 import { DISTRITOS } from "@/lib/data/portugal";
 
 export default async function EnriquecerPage() {
@@ -20,6 +21,7 @@ export default async function EnriquecerPage() {
         </div>
       </header>
       <main className="p-6 max-w-5xl mx-auto">
+        <CreditosNifPt />
         <EnriquecerWizard distritos={DISTRITOS} />
       </main>
     </div>
