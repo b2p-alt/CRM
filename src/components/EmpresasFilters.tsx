@@ -23,10 +23,11 @@ export default function EmpresasFilters({ distritos, distritosLocalidades, filte
   const router = useRouter();
   const pathname = usePathname();
 
-  const [distrito, setDistrito] = useState(filters.distrito || "");
+  const [q, setQ]                 = useState(filters.q || "");
+  const [distrito, setDistrito]   = useState(filters.distrito || "");
   const [localidade, setLocalidade] = useState(filters.localidade || "");
-  const [nif, setNif] = useState(filters.nif || "");
-  const [nome, setNome] = useState(filters.nome || "");
+  const [nif, setNif]             = useState(filters.nif || "");
+  const [nome, setNome]           = useState(filters.nome || "");
   const [tipoInstalacao, setTipoInstalacao] = useState(filters.tipoInstalacao || "");
   const [mesInicio, setMesInicio] = useState(filters.mesInicio || "");
 
@@ -38,6 +39,7 @@ export default function EmpresasFilters({ distritos, distritosLocalidades, filte
 
   function applyFilters() {
     const params = new URLSearchParams();
+    if (q) params.set("q", q);
     if (distrito) params.set("distrito", distrito);
     if (localidade) params.set("localidade", localidade);
     if (nif) params.set("nif", nif);
@@ -48,12 +50,19 @@ export default function EmpresasFilters({ distritos, distritosLocalidades, filte
   }
 
   function clearFilters() {
-    setDistrito(""); setLocalidade(""); setNif(""); setNome(""); setTipoInstalacao(""); setMesInicio("");
+    setQ(""); setDistrito(""); setLocalidade(""); setNif(""); setNome(""); setTipoInstalacao(""); setMesInicio("");
     router.push(pathname);
   }
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-4">
+    <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-3">
+      <input
+        placeholder="Pesquisa livre — telefone, email, nome, morada, notas..."
+        value={q}
+        onChange={(e) => setQ(e.target.value)}
+        onKeyDown={(e) => e.key === "Enter" && applyFilters()}
+        className="w-full border border-blue-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+      />
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
         <input
           placeholder="NIF"

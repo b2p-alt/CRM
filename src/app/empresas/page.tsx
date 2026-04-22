@@ -12,6 +12,7 @@ type SearchParams = {
   nome?: string;
   tipoInstalacao?: string;
   mesInicio?: string;
+  q?: string;
 };
 
 export default async function EmpresasPage({
@@ -46,6 +47,15 @@ export default async function EmpresasPage({
         instalacoes: { some: { tipoInstalacao: filters.tipoInstalacao as never } },
       }),
       ...(nifsComMesInicio !== null && { nif: { in: nifsComMesInicio } }),
+      ...(filters.q && { OR: [
+        { nome:      { contains: filters.q, mode: "insensitive" } },
+        { nif:       { contains: filters.q, mode: "insensitive" } },
+        { telefone:  { contains: filters.q, mode: "insensitive" } },
+        { email:     { contains: filters.q, mode: "insensitive" } },
+        { website:   { contains: filters.q, mode: "insensitive" } },
+        { morada:    { contains: filters.q, mode: "insensitive" } },
+        { notas: { some: { texto: { contains: filters.q, mode: "insensitive" } } } },
+      ]}),
     },
     include: { _count: { select: { instalacoes: true } }, kanbanCard: { select: { userId: true, user: { select: { nome: true } } } } },
     orderBy: { nome: "asc" },
