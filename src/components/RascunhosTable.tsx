@@ -39,8 +39,16 @@ export default function RascunhosTable({ empresas: initial, distritos }: Props) 
     if (search) {
       const q = search.toLowerCase();
       list = list.filter(e =>
-        e.nome.toLowerCase().includes(q) || e.nif.toLowerCase().includes(q) ||
-        (e.distrito ?? "").toLowerCase().includes(q)
+        e.nome.toLowerCase().includes(q) ||
+        e.nif.toLowerCase().includes(q) ||
+        (e.distrito ?? "").toLowerCase().includes(q) ||
+        (e.localidade ?? "").toLowerCase().includes(q) ||
+        (e.telefone ?? "").toLowerCase().includes(q) ||
+        (e.email ?? "").toLowerCase().includes(q) ||
+        (e.responsavel ?? "").toLowerCase().includes(q) ||
+        (e.quemAtende ?? "").toLowerCase().includes(q) ||
+        e.notas.some(n => n.texto.toLowerCase().includes(q)) ||
+        e.instalacoes.some(i => i.cpe.toLowerCase().includes(q))
       );
     }
     return list;
@@ -102,7 +110,7 @@ export default function RascunhosTable({ empresas: initial, distritos }: Props) 
       {/* Toolbar */}
       <div className="flex flex-wrap items-center gap-3">
         <input
-          type="text" placeholder="Pesquisar nome / NIF / distrito..."
+          type="text" placeholder="Pesquisar nome, NIF, telefone, email, notas, CPE..."
           value={search} onChange={e => setSearch(e.target.value)}
           className="border border-gray-300 rounded px-3 py-1.5 text-sm w-64"
         />
