@@ -12,17 +12,21 @@ type ImportResult = {
   errors: string[];
 };
 
-export default function Step5Confirmar({ records, distrito, existingNifs, existingCpes, enrichResults, onBack }: {
+export default function Step5Confirmar({ records, distrito, existingNifs, existingCpes, enrichResults, onBack, apiEndpoint, novaImportacaoHref, streaming }: {
   records: ParsedRecord[];
   distrito: string;
   existingNifs: string[];
   existingCpes: string[];
   enrichResults: Record<string, EnrichData>;
   onBack: () => void;
+  apiEndpoint?: string;
+  novaImportacaoHref?: string;
+  streaming?: boolean;
 }) {
   const [importing, setImporting] = useState(false);
   const [result, setResult]       = useState<ImportResult | null>(null);
   const [error, setError]         = useState("");
+  const [progress, setProgress]   = useState<{ done: number; total: number } | null>(null);
 
   const newEmpresas    = new Set(records.map(r => r.nipc).filter(Boolean));
   const existSet       = new Set(existingNifs);
@@ -35,23 +39,53 @@ export default function Step5Confirmar({ records, distrito, existingNifs, existi
 
     setImporting(true);
     setError("");
+    setProgress(null);
 
-    const res = await fetch("/api/importar/confirmar", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ records, distrito, enrichResults }),
-    });
+    try {
+      const res = await fetch(apiEndpoint ?? "/api/importar/confirmar", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ records, distrito, enrichResults }),
+      });
 
-    if (!res.ok) {
-      const data = await res.json().catch(() => ({}));
-      setError(data.error || "Erro na importação");
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setError(data.error || "Erro na importação");
+        setImporting(false);
+        return;
+      }
+
+      if (streaming && res.body) {
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split("\n");
+          buffer = lines.pop() ?? "";
+          for (const line of lines) {
+            if (!line.startsWith("data: ")) continue;
+            try {
+              const data = JSON.parse(line.slice(6));
+              if (data.error) { setError(data.error); setImporting(false); return; }
+              if (data.result) { setResult(data.result); setImporting(false); return; }
+              if (data.done !== undefined) setProgress({ done: data.done, total: data.total });
+            } catch { /* ignore malformed line */ }
+          }
+        }
+        setImporting(false);
+      } else {
+        const data = await res.json();
+        setResult(data);
+        setImporting(false);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erro na importação");
       setImporting(false);
-      return;
     }
-
-    const data = await res.json();
-    setResult(data);
-    setImporting(false);
   }
 
   if (result) {
@@ -93,7 +127,7 @@ export default function Step5Confirmar({ records, distrito, existingNifs, existi
             Ver Empresas
           </a>
           <a
-            href="/admin/importar"
+            href={novaImportacaoHref ?? "/admin/importar"}
             className="flex-1 border border-gray-300 text-gray-600 font-medium py-2.5 rounded-lg text-sm text-center hover:bg-gray-50"
           >
             Nova importação
@@ -102,6 +136,8 @@ export default function Step5Confirmar({ records, distrito, existingNifs, existi
       </div>
     );
   }
+
+  const pct = progress ? Math.round((progress.done / progress.total) * 100) : 0;
 
   return (
     <div className="max-w-lg mx-auto">
@@ -130,6 +166,21 @@ export default function Step5Confirmar({ records, distrito, existingNifs, existi
         Registos duplicados (NIF ou CPE já na BD) serão <strong>ignorados</strong>. Empresas existentes não serão alteradas.
       </div>
 
+      {importing && (
+        <div className="mb-6">
+          <div className="flex justify-between text-xs text-gray-500 mb-1">
+            <span>{progress ? `${progress.done} de ${progress.total} operações` : "A preparar..."}</span>
+            <span className="font-medium">{pct}%</span>
+          </div>
+          <div className="h-2.5 bg-gray-200 rounded-full overflow-hidden">
+            <div
+              className="h-2.5 bg-green-500 rounded-full transition-all duration-200"
+              style={{ width: `${pct}%` }}
+            />
+          </div>
+        </div>
+      )}
+
       {error && <p className="text-sm text-red-600 mb-4">{error}</p>}
 
       <div className="flex gap-3">
@@ -142,10 +193,10 @@ export default function Step5Confirmar({ records, distrito, existingNifs, existi
         </button>
         <button
           onClick={handleImport}
-          disabled={importing || newCount === 0 && newInstal === 0}
+          disabled={importing || (newCount === 0 && newInstal === 0)}
           className="flex-1 bg-green-600 hover:bg-green-700 text-white font-medium py-2.5 rounded-lg text-sm disabled:opacity-50"
         >
-          {importing ? "A importar..." : `Importar agora`}
+          {importing ? "A importar..." : "Importar agora"}
         </button>
       </div>
     </div>

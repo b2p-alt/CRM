@@ -6,9 +6,14 @@ type ApplyRecord = {
   nif: string;
   telefoneAtual: string | null;
   emailAtual: string | null;
+  moradaAtual: string | null;
+  localidadeAtual: string | null;
   telefoneEncontrado: string | null;
   emailEncontrado: string | null;
   websiteEncontrado: string | null;
+  nomeComercialEncontrado: string | null;
+  moradaEncontrada: string | null;
+  localidadeEncontrada: string | null;
 };
 
 type StatusRecord = {
@@ -32,9 +37,12 @@ export async function POST(req: NextRequest) {
   // Apply contact data for selected companies
   for (const r of (selecionados ?? [])) {
     const data: Record<string, string> = {};
-    if (r.telefoneEncontrado && !r.telefoneAtual) data.telefone = r.telefoneEncontrado;
-    if (r.emailEncontrado    && !r.emailAtual)    data.email    = r.emailEncontrado;
-    if (r.websiteEncontrado)                       data.website  = r.websiteEncontrado;
+    if (r.telefoneEncontrado && !r.telefoneAtual)          data.telefone      = r.telefoneEncontrado;
+    if (r.emailEncontrado    && !r.emailAtual)              data.email         = r.emailEncontrado;
+    if (r.websiteEncontrado)                                data.website       = r.websiteEncontrado;
+    if (r.nomeComercialEncontrado)                          data.nomeComercial = r.nomeComercialEncontrado;
+    if (r.moradaEncontrada    && !r.moradaAtual)            data.morada        = r.moradaEncontrada;
+    if (r.localidadeEncontrada && !r.localidadeAtual)       data.localidade    = r.localidadeEncontrada;
     if (Object.keys(data).length > 0) {
       await prisma.empresa.update({ where: { nif: r.nif }, data });
       atualizadas++;

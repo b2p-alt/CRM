@@ -11,6 +11,7 @@ type Props = {
     nif: string; nome: string; telefone?: string | null; email?: string | null;
     website?: string | null; morada?: string | null; distrito?: string | null;
     localidade?: string | null; quemAtende?: string | null; responsavel?: string | null;
+    nomeComercial?: string | null;
   };
 };
 
@@ -95,6 +96,20 @@ export default function EmpresaForm({ distritos, distritosLocalidades, empresa, 
       </div>
 
       {field("Website", "website")}
+      {empresa?.nomeComercial && (
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Nome oficial NIF.pt
+            <span className="ml-2 text-xs font-normal text-gray-400">(preenchido automaticamente pelo enriquecimento)</span>
+          </label>
+          <input
+            type="text"
+            value={empresa.nomeComercial}
+            disabled
+            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-gray-50 text-gray-500"
+          />
+        </div>
+      )}
       {field("Morada", "morada")}
 
       <div className="grid grid-cols-2 gap-4">

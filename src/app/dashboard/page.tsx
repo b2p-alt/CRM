@@ -81,6 +81,16 @@ export default async function DashboardPage() {
               <p className="text-sm text-gray-500 mt-1">Rever e confirmar dados importados</p>
             </Link>
           )}
+          {session.user?.role === "MASTER" && (
+            <Link
+              href="/admin/nabalia-cpe"
+              className="bg-white border border-gray-200 rounded-xl p-6 hover:border-purple-300 hover:shadow-sm transition"
+            >
+              <div className="text-2xl mb-2">⚡</div>
+              <h2 className="font-semibold text-gray-900">Pesquisa CPE</h2>
+              <p className="text-sm text-gray-500 mt-1">Importar pontos de entrega da Nabalia</p>
+            </Link>
+          )}
         </div>
       </main>
     </div>

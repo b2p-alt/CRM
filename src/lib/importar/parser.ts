@@ -29,8 +29,13 @@ export function cleanCpe(v: string): string | null {
 }
 
 export function cleanNivel(v: string): string | null {
-  const map: Record<string, string> = { MAT:"MAT",MT:"MT",BTE:"BTE",BTN:"BTN",AT:"AT" };
-  return map[v?.toUpperCase()] || null;
+  const map: Record<string, string> = {
+    MAT:"MAT", MT:"MT",
+    BTE:"BTE", "BTE ":"BTE", BTESP:"BTE", "BT":"BTE",
+    BTN:"BTN", "BTN ":"BTN", "BT1":"BTN", "BT2":"BTN",
+    AT:"AT",
+  };
+  return map[v?.trim().toUpperCase()] || null;
 }
 
 export function cleanLocalidade(v: string): string | null {

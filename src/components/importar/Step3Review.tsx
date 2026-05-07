@@ -14,16 +14,29 @@ export default function Step3Review({ records: initialRecords, onDone, onBack }:
   const [filter, setFilter]   = useState("");
   const [deleted, setDeleted] = useState<Set<string>>(new Set());
   const [editing, setEditing] = useState<string | null>(null);
+  const [sortField, setSortField] = useState<"nome" | "nipc" | "descPostal" | "dataInicio" | null>(null);
+  const [sortDir,   setSortDir]   = useState<"asc" | "desc">("asc");
+
+  function toggleSort(field: typeof sortField) {
+    if (sortField === field) setSortDir(d => d === "asc" ? "desc" : "asc");
+    else { setSortField(field); setSortDir("asc"); }
+  }
 
   const active = records.filter(r => !deleted.has(r.id));
 
-  const filtered = filter
+  const filtered = (filter
     ? active.filter(r =>
         r.nipc.includes(filter.toUpperCase()) ||
         r.cpe.includes(filter.toUpperCase()) ||
         r.nome.toLowerCase().includes(filter.toLowerCase())
       )
-    : active;
+    : active
+  ).slice().sort((a, b) => {
+    if (!sortField) return 0;
+    const va = (a[sortField] ?? "").toLowerCase();
+    const vb = (b[sortField] ?? "").toLowerCase();
+    return sortDir === "asc" ? va.localeCompare(vb, "pt") : vb.localeCompare(va, "pt");
+  });
 
   function patchRecord(id: string, patch: Partial<ParsedRecord>) {
     setRecords(rs => rs.map(r => r.id === id ? { ...r, ...patch } : r));
@@ -71,11 +84,12 @@ export default function Step3Review({ records: initialRecords, onDone, onBack }:
         <table className="w-full text-xs">
           <thead className="bg-gray-50 border-b border-gray-200 sticky top-0">
             <tr>
-              <th className="text-left px-3 py-2.5 font-semibold text-gray-500 uppercase tracking-wide">NIF</th>
-              <th className="text-left px-3 py-2.5 font-semibold text-gray-500 uppercase tracking-wide">Nome</th>
+              <SortTh label="NIF"             field="nipc"       sortField={sortField} sortDir={sortDir} onSort={toggleSort} />
+              <SortTh label="Nome"            field="nome"       sortField={sortField} sortDir={sortDir} onSort={toggleSort} />
               <th className="text-left px-3 py-2.5 font-semibold text-gray-500 uppercase tracking-wide">CPE</th>
               <th className="text-left px-3 py-2.5 font-semibold text-gray-500 uppercase tracking-wide">Nível</th>
-              <th className="text-left px-3 py-2.5 font-semibold text-gray-500 uppercase tracking-wide">Localidade</th>
+              <SortTh label="Localidade"      field="descPostal" sortField={sortField} sortDir={sortDir} onSort={toggleSort} />
+              <SortTh label="Início Contrato" field="dataInicio" sortField={sortField} sortDir={sortDir} onSort={toggleSort} />
               <th className="text-left px-3 py-2.5 font-semibold text-gray-500 uppercase tracking-wide">CMA (kWh)</th>
               <th className="px-3 py-2.5" />
             </tr>
@@ -127,6 +141,14 @@ export default function Step3Review({ records: initialRecords, onDone, onBack }:
                       </td>
                       <td className="px-3 py-1.5">
                         <input
+                          type="date"
+                          className="border rounded px-1.5 py-0.5 w-32"
+                          value={r.dataInicio}
+                          onChange={e => patchRecord(r.id, { dataInicio: e.target.value })}
+                        />
+                      </td>
+                      <td className="px-3 py-1.5">
+                        <input
                           className="border rounded px-1.5 py-0.5 w-20"
                           value={r.cma}
                           onChange={e => patchRecord(r.id, { cma: e.target.value })}
@@ -158,6 +180,7 @@ export default function Step3Review({ records: initialRecords, onDone, onBack }:
                         </span>
                       </td>
                       <td className="px-3 py-2 text-gray-600">{r.descPostal || "—"}</td>
+                      <td className="px-3 py-2 text-gray-600">{r.dataInicio || "—"}</td>
                       <td className="px-3 py-2 text-gray-600">{r.cma || "—"}</td>
                       <td className="px-3 py-2 whitespace-nowrap">
                         <button
@@ -204,5 +227,26 @@ export default function Step3Review({ records: initialRecords, onDone, onBack }:
         </button>
       </div>
     </div>
+  );
+}
+
+function SortTh({ label, field, sortField, sortDir, onSort }: {
+  label: string;
+  field: "nome" | "nipc" | "descPostal" | "dataInicio";
+  sortField: string | null;
+  sortDir: "asc" | "desc";
+  onSort: (f: "nome" | "nipc" | "descPostal" | "dataInicio") => void;
+}) {
+  const active = sortField === field;
+  return (
+    <th
+      className="text-left px-3 py-2.5 font-semibold text-gray-500 uppercase tracking-wide cursor-pointer select-none hover:text-gray-800 whitespace-nowrap"
+      onClick={() => onSort(field)}
+    >
+      {label}{" "}
+      <span className="text-xs">
+        {active ? (sortDir === "asc" ? "▲" : "▼") : <span className="text-gray-300">⇅</span>}
+      </span>
+    </th>
   );
 }

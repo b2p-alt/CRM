@@ -5,13 +5,16 @@ import { useState, useRef } from "react";
 type Filtro = "ambos" | "sem_telefone" | "sem_email";
 type NifStatus = "encontrado" | "sem_contactos" | "sem_dados" | "nif_invalido";
 
-type Empresa = { nif: string; nome: string; telefone: string | null; email: string | null };
+type Empresa = { nif: string; nome: string; telefone: string | null; email: string | null; morada: string | null; localidade: string | null };
 
 type EnrichRecord = {
   nif: string; nome: string;
   telefoneAtual: string | null; emailAtual: string | null;
+  moradaAtual: string | null; localidadeAtual: string | null;
   telefoneEncontrado: string | null; emailEncontrado: string | null;
   websiteEncontrado: string | null;
+  nomeComercialEncontrado: string | null;
+  moradaEncontrada: string | null; localidadeEncontrada: string | null;
   found: boolean; error?: string;
   nifStatus: NifStatus;
   raw: unknown;
@@ -40,7 +43,7 @@ const STATUS_LABEL: Record<NifStatus, string> = {
 
 function classifyStatus(data: Record<string, unknown>): NifStatus {
   if (data.found) {
-    if (data.telefone || data.email || data.website) return "encontrado";
+    if (data.telefone || data.email || data.website || data.nome || data.morada) return "encontrado";
     return "sem_contactos";
   }
   const raw = data.raw as Record<string, unknown> | null | undefined;
@@ -117,9 +120,13 @@ export default function EnriquecerWizard({ distritos }: { distritos: string[] })
         collected.push({
           nif: e.nif, nome: e.nome,
           telefoneAtual: e.telefone, emailAtual: e.email,
-          telefoneEncontrado: (data.telefone as string) ?? null,
-          emailEncontrado:    (data.email    as string) ?? null,
-          websiteEncontrado:  (data.website  as string) ?? null,
+          moradaAtual: e.morada, localidadeAtual: e.localidade,
+          telefoneEncontrado:      (data.telefone    as string) ?? null,
+          emailEncontrado:         (data.email       as string) ?? null,
+          websiteEncontrado:       (data.website     as string) ?? null,
+          nomeComercialEncontrado: (data.nome        as string) ?? null,
+          moradaEncontrada:        (data.morada      as string) ?? null,
+          localidadeEncontrada:    (data.localidade  as string) ?? null,
           found: (data.found as boolean) ?? false,
           error: data.error as string | undefined,
           nifStatus: classifyStatus(data),
@@ -129,7 +136,9 @@ export default function EnriquecerWizard({ distritos }: { distritos: string[] })
         collected.push({
           nif: e.nif, nome: e.nome,
           telefoneAtual: e.telefone, emailAtual: e.email,
+          moradaAtual: e.morada, localidadeAtual: e.localidade,
           telefoneEncontrado: null, emailEncontrado: null, websiteEncontrado: null,
+          nomeComercialEncontrado: null, moradaEncontrada: null, localidadeEncontrada: null,
           found: false, error: String(err),
           nifStatus: "sem_dados",
           raw: null,
@@ -371,9 +380,10 @@ export default function EnriquecerWizard({ distritos }: { distritos: string[] })
                 <tr>
                   <th className="px-3 py-2 w-8"></th>
                   <th className="text-left px-3 py-2 text-xs font-semibold text-gray-500 uppercase">Empresa</th>
-                  <th className="text-left px-3 py-2 text-xs font-semibold text-gray-500 uppercase w-36">Telefone</th>
-                  <th className="text-left px-3 py-2 text-xs font-semibold text-gray-500 uppercase w-48">Email</th>
-                  <th className="text-left px-3 py-2 text-xs font-semibold text-gray-500 uppercase w-40">Website</th>
+                  <th className="text-left px-3 py-2 text-xs font-semibold text-gray-500 uppercase w-44">Nome Oficial (NIF.pt)</th>
+                  <th className="text-left px-3 py-2 text-xs font-semibold text-gray-500 uppercase w-32">Telefone</th>
+                  <th className="text-left px-3 py-2 text-xs font-semibold text-gray-500 uppercase w-44">Email</th>
+                  <th className="text-left px-3 py-2 text-xs font-semibold text-gray-500 uppercase w-36">Website</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -384,8 +394,13 @@ export default function EnriquecerWizard({ distritos }: { distritos: string[] })
                       <input type="checkbox" checked={selected.has(r.nif)} readOnly className="pointer-events-none" />
                     </td>
                     <td className="px-3 py-2">
-                      <div className="font-medium text-gray-900 truncate max-w-[180px]">{r.nome}</div>
+                      <div className="font-medium text-gray-900 truncate max-w-[160px]">{r.nome}</div>
                       <div className="text-xs text-gray-400 font-mono">{r.nif}</div>
+                    </td>
+                    <td className="px-3 py-2 text-xs">
+                      {r.nomeComercialEncontrado
+                        ? <span className="text-purple-700 font-medium truncate block max-w-[160px]" title={r.nomeComercialEncontrado}>{r.nomeComercialEncontrado}</span>
+                        : <span className="text-gray-300">—</span>}
                     </td>
                     <td className="px-3 py-2 text-xs">
                       {r.telefoneEncontrado ? <span className="text-green-700 font-medium">{r.telefoneEncontrado}</span> : <span className="text-gray-300">—</span>}

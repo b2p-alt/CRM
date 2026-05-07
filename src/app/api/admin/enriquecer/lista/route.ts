@@ -16,7 +16,7 @@ export async function GET(req: NextRequest) {
 
   const empresas = await prisma.empresa.findMany({
     where: buildWhere(distrito, filtro, incluirJaPesquisados),
-    select: { nif: true, nome: true, telefone: true, email: true },
+    select: { nif: true, nome: true, telefone: true, email: true, morada: true, localidade: true },
     orderBy: { nome: "asc" },
   });
 
