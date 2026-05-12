@@ -70,13 +70,14 @@ export type DrawerCard = {
     lastContactAt: string | null;
   };
   user: { nome: string }; userId: string;
+  isShared?: boolean;
 };
 
 // ─── Component ────────────────────────────────────────────────
 export default function KanbanCardDrawer({
-  card, userRole, userId, onClose, onMove, onRemove, onAgendaChange, onNoteAdded, onContactSaved,
+  card, userRole, userId, isShared = false, onClose, onMove, onRemove, onAgendaChange, onNoteAdded, onContactSaved,
 }: {
-  card: DrawerCard; userRole: string; userId: string;
+  card: DrawerCard; userRole: string; userId: string; isShared?: boolean;
   onClose: () => void;
   onMove: (cardId: string, coluna: Coluna) => void;
   onRemove: (card: DrawerCard) => void;
@@ -112,7 +113,7 @@ export default function KanbanCardDrawer({
   const [savingRenovacao, setSavingRenovacao]   = useState(false);
 
   const isMaster = userRole === "MASTER";
-  const canEdit  = isMaster || card.userId === userId;
+  const canEdit  = !isShared && (isMaster || card.userId === userId);
   const hasAgenda = !!card.agendamentoData;
 
   // ── Edit nome ─────────────────────────────────────────────
@@ -288,7 +289,7 @@ export default function KanbanCardDrawer({
                 <h2 className="font-semibold text-gray-900 text-base leading-tight">{nomeValue}</h2>
                 <button
                   onClick={() => setEditingNome(true)}
-                  className="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-gray-600 transition-opacity"
+                  className={`text-gray-400 hover:text-gray-600 transition-opacity ${isShared ? "hidden" : "opacity-0 group-hover:opacity-100"}`}
                   title="Editar nome"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor">
@@ -305,6 +306,11 @@ export default function KanbanCardDrawer({
                 </span>
               )}
             </p>
+            {isShared && (
+              <span className="inline-flex items-center gap-1 mt-1 text-xs bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full font-medium">
+                Proposta de {card.user.nome}
+              </span>
+            )}
           </div>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl leading-none flex-shrink-0">✕</button>
         </div>
@@ -318,11 +324,11 @@ export default function KanbanCardDrawer({
             {/* LEFT: contact */}
             <div className="w-[40%] border-r border-gray-100 px-5 py-4 space-y-2.5">
               <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Contacto</p>
-              <EditField label="Telefone"    value={contact.telefone}    onChange={(v) => { setContact((c) => ({ ...c, telefone: v }));    setContactDirty(true); }} />
-              <EditField label="Email (sep. ; para múltiplos)" value={contact.email} onChange={(v) => { setContact((c) => ({ ...c, email: v })); setContactDirty(true); }} />
-              <EditField label="Quem atende" value={contact.quemAtende}  onChange={(v) => { setContact((c) => ({ ...c, quemAtende: v }));  setContactDirty(true); }} />
-              <EditField label="Responsável" value={contact.responsavel} onChange={(v) => { setContact((c) => ({ ...c, responsavel: v })); setContactDirty(true); }} />
-              {contactDirty && (
+              <EditField label="Telefone"    value={contact.telefone}    disabled={isShared} onChange={(v) => { setContact((c) => ({ ...c, telefone: v }));    setContactDirty(true); }} />
+              <EditField label="Email (sep. ; para múltiplos)" value={contact.email} disabled={isShared} onChange={(v) => { setContact((c) => ({ ...c, email: v })); setContactDirty(true); }} />
+              <EditField label="Quem atende" value={contact.quemAtende}  disabled={isShared} onChange={(v) => { setContact((c) => ({ ...c, quemAtende: v }));  setContactDirty(true); }} />
+              <EditField label="Responsável" value={contact.responsavel} disabled={isShared} onChange={(v) => { setContact((c) => ({ ...c, responsavel: v })); setContactDirty(true); }} />
+              {contactDirty && !isShared && (
                 <button onClick={saveContact} disabled={contactSaving}
                   className="text-xs bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg disabled:opacity-50">
                   {contactSaving ? "A guardar..." : "Guardar alterações"}
@@ -353,13 +359,15 @@ export default function KanbanCardDrawer({
                       title="Guardar nota"
                       className="w-8 h-8 rounded-lg flex items-center justify-center text-sm bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-30 disabled:cursor-not-allowed transition"
                     >↵</button>
-                    <button
-                      onClick={() => setShowAgenda((v) => !v)}
-                      title="Agendar alerta"
-                      className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm transition ${
-                        showAgenda || agendaDate ? "bg-amber-100 text-amber-600" : "bg-gray-100 text-gray-400 hover:text-gray-600"
-                      }`}
-                    >📅</button>
+                    {!isShared && (
+                      <button
+                        onClick={() => setShowAgenda((v) => !v)}
+                        title="Agendar alerta"
+                        className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm transition ${
+                          showAgenda || agendaDate ? "bg-amber-100 text-amber-600" : "bg-gray-100 text-gray-400 hover:text-gray-600"
+                        }`}
+                      >📅</button>
+                    )}
                   </div>
                 </div>
                 {showAgenda && (
@@ -439,7 +447,7 @@ export default function KanbanCardDrawer({
             </p>
 
             {/* Bulk renewal */}
-            <div className="flex items-end gap-2 mb-3">
+            {!isShared && <div className="flex items-end gap-2 mb-3">
               <div>
                 <p className="text-xs text-gray-500 mb-1">Mês Término</p>
                 <div className="flex gap-1">
@@ -466,7 +474,7 @@ export default function KanbanCardDrawer({
                 className="text-xs bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg disabled:opacity-40 flex-shrink-0">
                 {savingRenovacao ? "A guardar..." : "Aplicar a todas"}
               </button>
-            </div>
+            </div>}
 
             {/* Installation cards — scrollable */}
             {loadingData ? (
@@ -560,12 +568,12 @@ export default function KanbanCardDrawer({
   );
 }
 
-function EditField({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
+function EditField({ label, value, disabled, onChange }: { label: string; value: string; disabled?: boolean; onChange: (v: string) => void }) {
   return (
     <div className="flex flex-col gap-0.5">
       <span className="text-xs text-gray-400">{label}</span>
-      <input type="text" value={value} onChange={(e) => onChange(e.target.value)}
-        className="w-full border border-gray-200 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 hover:border-gray-300 bg-white" />
+      <input type="text" value={value} disabled={disabled} onChange={(e) => onChange(e.target.value)}
+        className="w-full border border-gray-200 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 hover:border-gray-300 bg-white disabled:bg-gray-50 disabled:text-gray-500 disabled:cursor-default" />
     </div>
   );
 }

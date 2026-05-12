@@ -4,30 +4,24 @@ import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import KanbanBoard from "@/components/KanbanBoard";
 
-export default async function KanbanPage() {
-  const session = await auth();
-  if (!session) redirect("/login");
-
-  const cards = await prisma.kanbanCard.findMany({
-    where: { userId: session.user!.id! },
+const CARD_INCLUDE = {
+  empresa: {
     include: {
-      empresa: {
-        include: {
-          _count: { select: { instalacoes: true } },
-          notas: {
-            orderBy: { createdAt: "desc" },
-            take: 1,
-            select: { createdAt: true },
-          },
-        },
+      _count: { select: { instalacoes: true } },
+      notas: {
+        orderBy: { createdAt: "desc" as const },
+        take: 1,
+        select: { createdAt: true },
       },
-      user: { select: { nome: true } },
     },
-    orderBy: { updatedAt: "desc" },
-  });
+  },
+  user: { select: { nome: true } },
+};
 
-  const serialized = cards.map((c) => ({
+function serializeCard(c: Awaited<ReturnType<typeof prisma.kanbanCard.findMany<{ include: typeof CARD_INCLUDE }>>>[number], isShared: boolean) {
+  return {
     ...c,
+    isShared,
     agendamentoData: c.agendamentoData ? c.agendamentoData.toISOString() : null,
     createdAt: c.createdAt.toISOString(),
     updatedAt: c.updatedAt.toISOString(),
@@ -36,9 +30,36 @@ export default async function KanbanPage() {
       createdAt: c.empresa.createdAt.toISOString(),
       updatedAt: c.empresa.updatedAt.toISOString(),
       lastContactAt: c.empresa.notas[0]?.createdAt.toISOString() ?? null,
-      notas: undefined, // não precisamos no cliente
+      notas: undefined,
     },
-  }));
+  };
+}
+
+export default async function KanbanPage() {
+  const session = await auth();
+  if (!session) redirect("/login");
+
+  const isMaster = session.user?.role === "MASTER";
+
+  const [cards, sharedCards] = await Promise.all([
+    prisma.kanbanCard.findMany({
+      where: { userId: session.user!.id! },
+      include: CARD_INCLUDE,
+      orderBy: { updatedAt: "desc" },
+    }),
+    isMaster
+      ? prisma.kanbanCard.findMany({
+          where: { coluna: "PROPOSTA", userId: { not: session.user!.id! } },
+          include: CARD_INCLUDE,
+          orderBy: { updatedAt: "desc" },
+        })
+      : Promise.resolve([]),
+  ]);
+
+  const serialized = [
+    ...cards.map((c) => serializeCard(c, false)),
+    ...sharedCards.map((c) => serializeCard(c, true)),
+  ];
 
   return (
     <div className="min-h-screen bg-gray-50">

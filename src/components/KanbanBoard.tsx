@@ -18,6 +18,7 @@ const COLUNAS: { key: Coluna; label: string; headerColor: string }[] = [
 
 type Card = DrawerCard & {
   empresa: DrawerCard["empresa"] & { lastContactAt: string | null };
+  isShared?: boolean;
 };
 
 // ── Sorting ──────────────────────────────────────────────────
@@ -196,7 +197,7 @@ export default function KanbanBoard({
       {/* Toolbar */}
       <div className="mb-5 flex items-center justify-between">
         <p className="text-sm text-gray-500">
-          {cards.length} empresa{cards.length !== 1 ? "s" : ""} em pipeline
+          {cards.filter((c) => !c.isShared).length} empresa{cards.filter((c) => !c.isShared).length !== 1 ? "s" : ""} em pipeline
         </p>
         <button
           onClick={() => setShowPicker(true)}
@@ -231,7 +232,7 @@ export default function KanbanBoard({
               {/* Cards */}
               <div className={`min-h-[60px] rounded-xl space-y-1.5 transition-colors ${isDropTarget ? "bg-blue-50 ring-2 ring-blue-300 ring-dashed p-1" : ""}`}>
                 {colCards.map((card) => {
-                  const canEdit = isMaster || card.userId === userId;
+                  const canEdit = !card.isShared && (isMaster || card.userId === userId);
                   const alerta = isAlertaAtivo(card);
 
                   return (
@@ -244,10 +245,12 @@ export default function KanbanBoard({
                       className={`border rounded-lg px-3 py-2 transition select-none ${
                         dragging === card.id ? "opacity-40 scale-95 shadow-lg" : ""
                       } ${
-                        alerta
-                          ? "bg-amber-50 border-amber-300 hover:border-amber-400 shadow-sm"
-                          : "bg-white border-gray-200 hover:border-blue-300 hover:shadow-sm"
-                      } ${canEdit ? "cursor-grab active:cursor-grabbing" : "cursor-pointer"}`}
+                        card.isShared
+                          ? "bg-orange-50 border-orange-200 hover:border-orange-400 hover:shadow-sm cursor-pointer"
+                          : alerta
+                            ? "bg-amber-50 border-amber-300 hover:border-amber-400 shadow-sm cursor-grab active:cursor-grabbing"
+                            : `bg-white border-gray-200 hover:border-blue-300 hover:shadow-sm ${canEdit ? "cursor-grab active:cursor-grabbing" : "cursor-pointer"}`
+                      }`}
                     >
                       {/* Line 1: name + agenda icon */}
                       <div className="flex items-center justify-between gap-1">
@@ -272,6 +275,13 @@ export default function KanbanBoard({
                           ? ` · Contactado: ${formatContactDate(card.empresa.lastContactAt)}`
                           : " · Sem contacto"}
                       </p>
+
+                      {/* Line 3: agent badge for shared cards */}
+                      {card.isShared && (
+                        <p className="text-xs text-orange-600 font-medium mt-1 truncate">
+                          Agente: {card.user.nome}
+                        </p>
+                      )}
                     </div>
                   );
                 })}
@@ -296,6 +306,7 @@ export default function KanbanBoard({
           card={openCard}
           userRole={userRole}
           userId={userId}
+          isShared={!!openCard.isShared}
           onClose={() => setOpenCard(null)}
           onMove={moveCard}
           onRemove={removeCard}
