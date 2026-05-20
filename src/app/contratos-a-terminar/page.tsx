@@ -33,14 +33,20 @@ export default async function ContratosATerminarPage() {
     where: { mesTermino: { not: null } },
     include: {
       empresa: {
-        select: { nif: true, nome: true, distrito: true, localidade: true },
+        select: {
+          nif: true,
+          nome: true,
+          distrito: true,
+          localidade: true,
+          kanbanCard: { select: { user: { select: { nome: true } } } },
+        },
       },
     },
   });
 
   // Agrupar por empresa
   const porEmpresa = new Map<string, {
-    empresa: { nif: string; nome: string; distrito: string | null; localidade: string | null };
+    empresa: typeof instalacoes[number]["empresa"];
     count: number;
     mesTerminoMaisProximo: string;
   }>();
@@ -91,6 +97,7 @@ export default async function ContratosATerminarPage() {
                   <th className="text-left px-4 py-3 font-medium">Localidade</th>
                   <th className="text-center px-4 py-3 font-medium">Contratos</th>
                   <th className="text-left px-4 py-3 font-medium">Término</th>
+                  <th className="text-left px-4 py-3 font-medium">Estado</th>
                 </tr>
               </thead>
               <tbody>
@@ -122,6 +129,15 @@ export default async function ContratosATerminarPage() {
                       >
                         {formatMes(mesTerminoMaisProximo)}
                       </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      {empresa.kanbanCard ? (
+                        <span className="text-xs text-orange-600 font-medium">
+                          Atribuída a {empresa.kanbanCard.user.nome}
+                        </span>
+                      ) : (
+                        <span className="text-xs text-green-600 font-medium">Livre</span>
+                      )}
                     </td>
                   </tr>
                 ))}
