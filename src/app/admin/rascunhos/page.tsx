@@ -8,7 +8,6 @@ import { DISTRITOS } from "@/lib/data/portugal";
 export default async function RascunhosPage() {
   const session = await auth();
   if (!session) redirect("/login");
-  if (session.user.role !== "MASTER") redirect("/empresas");
 
   const empresas = await prisma.empresa.findMany({
     where: { rascunho: true },
