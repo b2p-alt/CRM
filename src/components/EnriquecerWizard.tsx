@@ -3,6 +3,7 @@
 import { useState, useRef } from "react";
 
 type Filtro = "ambos" | "sem_telefone" | "sem_email";
+type Fonte  = "nifpt" | "einforma";
 type NifStatus = "encontrado" | "sem_contactos" | "sem_dados" | "nif_invalido";
 
 type Empresa = { nif: string; nome: string; telefone: string | null; email: string | null; morada: string | null; localidade: string | null };
@@ -34,6 +35,11 @@ const DELAY_OPTIONS = [
   { value: 1000, label: "1s (mais seguro)" },
 ];
 
+const FONTE_OPTIONS: { value: Fonte; label: string; desc: string }[] = [
+  { value: "nifpt",    label: "NIF.pt",     desc: "Dados completos: nome fiscal, morada, contactos. Custo: 0,01€/consulta." },
+  { value: "einforma", label: "eInforma.pt", desc: "Telefone, email e website. Custo: incluído no plano anual." },
+];
+
 const STATUS_LABEL: Record<NifStatus, string> = {
   encontrado:     "Dados encontrados",
   sem_contactos:  "NIF existe mas sem contactos",
@@ -55,6 +61,7 @@ export default function EnriquecerWizard({ distritos }: { distritos: string[] })
   const [step, setStep]       = useState<Step>("config");
   const [distrito, setDistrito] = useState("");
   const [filtro, setFiltro]   = useState<Filtro>("ambos");
+  const [fonte, setFonte]     = useState<Fonte>("nifpt");
   const [delayMs, setDelayMs] = useState(300);
   const [incluirJaPesquisados, setIncluirJaPesquisados] = useState(false);
   const [count, setCount]     = useState<number | null>(null);
@@ -115,7 +122,7 @@ export default function EnriquecerWizard({ distritos }: { distritos: string[] })
       setProgress({ done: i, total: empresas.length, nome: e.nome });
 
       try {
-        const r = await fetch(`/api/admin/enriquecer/lookup?nif=${encodeURIComponent(e.nif)}`);
+        const r = await fetch(`/api/admin/enriquecer/lookup?nif=${encodeURIComponent(e.nif)}&fonte=${fonte}`);
         const data = await r.json() as Record<string, unknown>;
         collected.push({
           nif: e.nif, nome: e.nome,
@@ -240,11 +247,43 @@ export default function EnriquecerWizard({ distritos }: { distritos: string[] })
       </div>
 
       <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">Fonte de dados</label>
+        <div className="space-y-2">
+          {FONTE_OPTIONS.map(f => (
+            <label key={f.value}
+              className={`flex items-start gap-3 p-3 border rounded-lg cursor-pointer transition-colors ${
+                fonte === f.value
+                  ? "border-blue-500 bg-blue-50"
+                  : "border-gray-200 hover:border-gray-300"
+              }`}
+            >
+              <input type="radio" name="fonte" value={f.value} checked={fonte === f.value}
+                onChange={() => {
+                  setFonte(f.value);
+                  if (f.value === "einforma") setDelayMs(1000);
+                  else setDelayMs(300);
+                }}
+                className="mt-0.5 shrink-0" />
+              <div>
+                <div className="text-sm font-medium text-gray-900">{f.label}</div>
+                <div className="text-xs text-gray-500 mt-0.5">{f.desc}</div>
+              </div>
+            </label>
+          ))}
+        </div>
+      </div>
+
+      <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">Intervalo entre pedidos</label>
         <select value={delayMs} onChange={e => setDelayMs(Number(e.target.value))}
           className="border border-gray-300 rounded px-3 py-2 text-sm w-full">
           {DELAY_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
         </select>
+        {fonte === "einforma" && (
+          <p className="text-xs text-amber-600 mt-1">
+            Para o eInforma recomenda-se 1s ou mais para evitar bloqueio temporário.
+          </p>
+        )}
       </div>
 
       <label className="flex items-center gap-2 text-sm cursor-pointer text-gray-600">
@@ -278,7 +317,10 @@ export default function EnriquecerWizard({ distritos }: { distritos: string[] })
           <div>
             <h2 className="font-semibold text-gray-900">2. Selecionar empresas a enriquecer</h2>
             <p className="text-xs text-gray-500 mt-0.5">
-              {paraEnriquecer.size} de {lista.length} selecionadas · cada pedido consome 1 crédito NIF.pt
+              {paraEnriquecer.size} de {lista.length} selecionadas ·{" "}
+              {fonte === "nifpt"
+                ? "cada pedido consome 1 crédito NIF.pt"
+                : "via eInforma.pt (plano anual)"}
             </p>
           </div>
           <button onClick={() => setStep("config")} className="text-xs text-gray-400 hover:text-gray-600">← Voltar</button>
@@ -380,7 +422,9 @@ export default function EnriquecerWizard({ distritos }: { distritos: string[] })
                 <tr>
                   <th className="px-3 py-2 w-8"></th>
                   <th className="text-left px-3 py-2 text-xs font-semibold text-gray-500 uppercase">Empresa</th>
-                  <th className="text-left px-3 py-2 text-xs font-semibold text-gray-500 uppercase w-44">Nome Oficial (NIF.pt)</th>
+                  <th className="text-left px-3 py-2 text-xs font-semibold text-gray-500 uppercase w-44">
+                    {fonte === "nifpt" ? "Nome Oficial (NIF.pt)" : "Nome Oficial"}
+                  </th>
                   <th className="text-left px-3 py-2 text-xs font-semibold text-gray-500 uppercase w-32">Telefone</th>
                   <th className="text-left px-3 py-2 text-xs font-semibold text-gray-500 uppercase w-44">Email</th>
                   <th className="text-left px-3 py-2 text-xs font-semibold text-gray-500 uppercase w-36">Website</th>
@@ -445,7 +489,7 @@ export default function EnriquecerWizard({ distritos }: { distritos: string[] })
             {/* Sem dados */}
             {semDados.length > 0 && (
               <ErrorGroup
-                title="Sem dados no NIF.pt"
+                title={`Sem dados no ${fonte === "einforma" ? "eInforma.pt" : "NIF.pt"}`}
                 records={semDados}
                 color="yellow"
               />

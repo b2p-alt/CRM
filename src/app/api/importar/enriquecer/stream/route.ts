@@ -36,6 +36,7 @@ export async function GET(req: NextRequest) {
           total: job.total,
           processed: job.processed,
           found: job.found,
+          currentNif: job.currentNif,
           // Send full results only when done to avoid large payloads
           results: (job.status === "done" || job.status === "paused") ? job.results : undefined,
         });

@@ -8,6 +8,7 @@ export type EnrichJob = {
   total: number;
   processed: number;
   found: number;
+  currentNif?: string;
   results: Record<string, EnrichData>; // nipc → dados
   error?: string;
   createdAt: number;

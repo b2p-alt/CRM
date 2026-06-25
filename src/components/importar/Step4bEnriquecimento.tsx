@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { ParsedRecord } from "@/lib/importar/types";
-import { EnrichData } from "@/lib/importar/racius";
+import { EnrichData } from "@/lib/importar/einforma";
 
 type EnrichResults = Record<string, EnrichData>; // nipc → dados
 
@@ -11,6 +11,7 @@ type StreamEvent = {
   total: number;
   processed: number;
   found: number;
+  currentNif?: string;
   results?: EnrichResults;
 };
 
@@ -102,7 +103,7 @@ export default function Step4bEnriquecimento({ records, onDone, onSkip, onBack }
   }
 
   const merged = mergedResults();
-  const foundCount = Object.values(merged).filter(r => r.telefone || r.website).length;
+  const foundCount = Object.values(merged).filter(r => r.telefone || r.email || r.website).length;
   const progress = evt ? Math.round((evt.processed / evt.total) * 100) : 0;
 
   // ── Pre-start screen ─────────────────────────────────────────
@@ -111,7 +112,7 @@ export default function Step4bEnriquecimento({ records, onDone, onSkip, onBack }
       <div className="max-w-lg mx-auto">
         <h2 className="text-base font-semibold text-gray-900 mb-1">4b. Enriquecimento de contactos</h2>
         <p className="text-sm text-gray-500 mb-6">
-          Pesquisa automática de telefones e websites no Racius.com para as empresas deste lote.
+          Pesquisa automática de telefone, email e website no eInforma.pt para as empresas deste lote.
           Este passo é opcional.
         </p>
 
@@ -126,7 +127,7 @@ export default function Step4bEnriquecimento({ records, onDone, onSkip, onBack }
           </div>
           <div className="flex justify-between">
             <span className="text-gray-600">Taxa de sucesso esperada</span>
-            <span className="font-semibold">~50–65%</span>
+            <span className="font-semibold">~70–85%</span>
           </div>
         </div>
 
@@ -142,7 +143,7 @@ export default function Step4bEnriquecimento({ records, onDone, onSkip, onBack }
             ))}
           </select>
           <p className="text-xs text-gray-400 mt-1">
-            Delay entre cada pesquisa. Valores baixos aumentam o risco de bloqueio temporário pelo Racius.
+            Delay entre cada pesquisa. Valores baixos aumentam o risco de bloqueio temporário pelo eInforma.
           </p>
         </div>
 
@@ -173,7 +174,7 @@ export default function Step4bEnriquecimento({ records, onDone, onSkip, onBack }
     return (
       <div className="max-w-lg mx-auto">
         <h2 className="text-base font-semibold text-gray-900 mb-1">4b. Enriquecimento de contactos</h2>
-        <p className="text-sm text-gray-500 mb-8">A pesquisar no Racius.com...</p>
+        <p className="text-sm text-gray-500 mb-8">A pesquisar no eInforma.pt...</p>
 
         {error ? (
           <div className="bg-red-50 border border-red-200 rounded-xl p-5 mb-6">
@@ -187,6 +188,11 @@ export default function Step4bEnriquecimento({ records, onDone, onSkip, onBack }
               </span>
               <span className="text-sm font-semibold">{progress}%</span>
             </div>
+            {evt?.currentNif && (
+              <div className="text-xs text-gray-400 mb-2 font-mono">
+                A pesquisar: {evt.currentNif}
+              </div>
+            )}
             <div className="h-3 bg-gray-100 rounded-full overflow-hidden mb-3">
               <div className="h-full bg-blue-500 rounded-full transition-all duration-1000"
                 style={{ width: `${progress}%` }} />
@@ -235,6 +241,7 @@ export default function Step4bEnriquecimento({ records, onDone, onSkip, onBack }
             <tr>
               <th className="text-left px-3 py-2.5 font-semibold text-gray-500 uppercase tracking-wide w-32">NIF</th>
               <th className="text-left px-3 py-2.5 font-semibold text-gray-500 uppercase tracking-wide">Telefone</th>
+              <th className="text-left px-3 py-2.5 font-semibold text-gray-500 uppercase tracking-wide">Email</th>
               <th className="text-left px-3 py-2.5 font-semibold text-gray-500 uppercase tracking-wide">Website</th>
               <th className="text-left px-3 py-2.5 font-semibold text-gray-500 uppercase tracking-wide w-16">Estado</th>
             </tr>
@@ -254,13 +261,21 @@ export default function Step4bEnriquecimento({ records, onDone, onSkip, onBack }
                 <td className="px-3 py-2">
                   <input
                     className="w-full border-0 bg-transparent focus:outline-none focus:bg-white focus:border focus:border-blue-300 focus:rounded px-1"
+                    value={editOverrides[nipc]?.email ?? data.email ?? ""}
+                    placeholder="—"
+                    onChange={e => patchEdit(nipc, { email: e.target.value || null })}
+                  />
+                </td>
+                <td className="px-3 py-2">
+                  <input
+                    className="w-full border-0 bg-transparent focus:outline-none focus:bg-white focus:border focus:border-blue-300 focus:rounded px-1"
                     value={editOverrides[nipc]?.website ?? data.website ?? ""}
                     placeholder="—"
                     onChange={e => patchEdit(nipc, { website: e.target.value || null })}
                   />
                 </td>
                 <td className="px-3 py-2 text-center">
-                  {(data.telefone || data.website)
+                  {(data.telefone || data.email || data.website)
                     ? <span className="text-green-600">✓</span>
                     : <span className="text-gray-300">—</span>
                   }

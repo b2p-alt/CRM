@@ -67,7 +67,7 @@ export async function importRecords(
   const empresaUpserts: {
     nif: string; nome: string; morada: string | null;
     localidade: string | null; distrito: string;
-    telefone: string | null; website: string | null;
+    telefone: string | null; email: string | null; website: string | null;
   }[] = [];
   const instalInserts: {
     cpe: string; nivel: string; morada: string | null;
@@ -101,6 +101,7 @@ export async function importRecords(
         localidade: cleanLocalidade(r.descPostal),
         distrito,
         telefone:   enrich?.telefone ?? null,
+        email:      enrich?.email    ?? null,
         website:    enrich?.website  ?? null,
       });
     }
@@ -131,7 +132,7 @@ export async function importRecords(
         create: {
           nif: e.nif, nome: e.nome, morada: e.morada,
           localidade: e.localidade, distrito: e.distrito,
-          telefone: e.telefone, website: e.website,
+          telefone: e.telefone, email: e.email, website: e.website,
           rascunho,
         },
         update: {}, // nunca sobrescreve dados introduzidos manualmente

@@ -38,6 +38,7 @@ export async function POST(req: NextRequest) {
       if (!job || job.aborted) break;
 
       const nif = nifs[i];
+      patchEnrichJob(jobId, { currentNif: nif });
       // Apply delay between requests (not before the first one)
       const data = await enrichNif(nif, i === 0 ? 0 : delayMs);
 
