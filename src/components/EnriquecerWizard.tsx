@@ -35,6 +35,18 @@ const DELAY_OPTIONS = [
   { value: 1000, label: "1s (mais seguro)" },
 ];
 
+const MESES = [
+  { val: "1", label: "Janeiro" }, { val: "2", label: "Fevereiro" },
+  { val: "3", label: "Março" }, { val: "4", label: "Abril" },
+  { val: "5", label: "Maio" }, { val: "6", label: "Junho" },
+  { val: "7", label: "Julho" }, { val: "8", label: "Agosto" },
+  { val: "9", label: "Setembro" }, { val: "10", label: "Outubro" },
+  { val: "11", label: "Novembro" }, { val: "12", label: "Dezembro" },
+];
+
+// A cada N empresas processadas, grava logo na BD em vez de esperar pelo fim do lote todo
+const CHECKPOINT_SIZE = 100;
+
 const FONTE_OPTIONS: { value: Fonte; label: string; desc: string }[] = [
   { value: "nifpt",    label: "NIF.pt",     desc: "Dados completos: nome fiscal, morada, contactos. Custo: 0,01€/consulta." },
   { value: "einforma", label: "eInforma.pt", desc: "Telefone, email e website. Custo: incluído no plano anual." },
@@ -60,6 +72,7 @@ function classifyStatus(data: Record<string, unknown>): NifStatus {
 export default function EnriquecerWizard({ distritos }: { distritos: string[] }) {
   const [step, setStep]       = useState<Step>("config");
   const [distrito, setDistrito] = useState("");
+  const [mesInicio, setMesInicio] = useState("");
   const [filtro, setFiltro]   = useState<Filtro>("ambos");
   const [fonte, setFonte]     = useState<Fonte>("nifpt");
   const [delayMs, setDelayMs] = useState(300);
@@ -70,7 +83,7 @@ export default function EnriquecerWizard({ distritos }: { distritos: string[] })
   const [lista, setLista]         = useState<Empresa[]>([]);
   const [paraEnriquecer, setParaEnriquecer] = useState<Set<string>>(new Set());
   const [loadingLista, setLoadingLista] = useState(false);
-  const [progress, setProgress]   = useState({ done: 0, total: 0, nome: "" });
+  const [progress, setProgress]   = useState({ done: 0, total: 0, nome: "", guardadas: 0 });
   const [results, setResults]     = useState<EnrichRecord[]>([]);
   const [selected, setSelected]   = useState<Set<string>>(new Set());
   const [atualizadas, setAtualizadas] = useState(0);
@@ -80,11 +93,12 @@ export default function EnriquecerWizard({ distritos }: { distritos: string[] })
 
   const stopRef = useRef(false);
 
-  async function fetchCount(d: string, f: Filtro, ijp: boolean) {
+  async function fetchCount(d: string, f: Filtro, ijp: boolean, mi: string) {
     if (!d) { setCount(null); return; }
     setLoadingCount(true);
     const p = new URLSearchParams({ distrito: d, filtro: f });
     if (ijp) p.set("incluirJaPesquisados", "1");
+    if (mi) p.set("mesInicio", mi);
     const res = await fetch(`/api/admin/enriquecer/count?${p}`);
     const data = await res.json();
     setCount(data.count ?? 0);
@@ -95,6 +109,7 @@ export default function EnriquecerWizard({ distritos }: { distritos: string[] })
     setLoadingLista(true);
     const p = new URLSearchParams({ filtro });
     if (distrito) p.set("distrito", distrito);
+    if (mesInicio) p.set("mesInicio", mesInicio);
     if (incluirJaPesquisados) p.set("incluirJaPesquisados", "1");
     const res = await fetch(`/api/admin/enriquecer/lista?${p}`);
     const empresas: Empresa[] = await res.json();
@@ -110,16 +125,48 @@ export default function EnriquecerWizard({ distritos }: { distritos: string[] })
     const empresas = lista.filter(e => paraEnriquecer.has(e.nif));
     if (!empresas.length) return;
 
-    setProgress({ done: 0, total: empresas.length, nome: "" });
+    setProgress({ done: 0, total: empresas.length, nome: "", guardadas: 0 });
     setResults([]);
     setStep("running");
 
     const collected: EnrichRecord[] = [];
+    let checkpointStart = 0;
+    let guardadas = 0;
+
+    // Grava logo na BD o que já foi processado, em vez de esperar pelo fim do lote todo.
+    // Assim, se o browser fechar ou a ligação cair a meio, o que já foi feito não se perde
+    // — e ao recomeçar com os mesmos filtros, estas empresas já não voltam a aparecer.
+    async function flushCheckpoint(force = false) {
+      const pending = collected.length - checkpointStart;
+      if (pending === 0 || (!force && pending < CHECKPOINT_SIZE)) return;
+      const batch = collected.slice(checkpointStart);
+      const selecionados = batch.filter(r => r.nifStatus === "encontrado").map(r => ({
+        nif: r.nif, telefoneAtual: r.telefoneAtual, emailAtual: r.emailAtual,
+        moradaAtual: r.moradaAtual, localidadeAtual: r.localidadeAtual,
+        telefoneEncontrado: r.telefoneEncontrado, emailEncontrado: r.emailEncontrado,
+        websiteEncontrado: r.websiteEncontrado, nomeComercialEncontrado: r.nomeComercialEncontrado,
+        moradaEncontrada: r.moradaEncontrada, localidadeEncontrada: r.localidadeEncontrada,
+      }));
+      const todos = batch.map(r => ({ nif: r.nif, nifStatus: r.nifStatus, raw: r.raw }));
+      try {
+        const res = await fetch("/api/admin/enriquecer/aplicar", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ selecionados, todos }),
+        });
+        const data = await res.json();
+        guardadas += data.atualizadas ?? 0;
+        checkpointStart = collected.length;
+        setProgress(p => ({ ...p, guardadas }));
+      } catch (err) {
+        console.error("Falha ao gravar checkpoint — será repetido no próximo lote", err);
+      }
+    }
 
     for (let i = 0; i < empresas.length; i++) {
       if (stopRef.current) break;
       const e = empresas[i];
-      setProgress({ done: i, total: empresas.length, nome: e.nome });
+      setProgress(p => ({ ...p, done: i, total: empresas.length, nome: e.nome }));
 
       try {
         const r = await fetch(`/api/admin/enriquecer/lookup?nif=${encodeURIComponent(e.nif)}&fonte=${fonte}`);
@@ -153,8 +200,11 @@ export default function EnriquecerWizard({ distritos }: { distritos: string[] })
       }
 
       setResults([...collected]);
+      await flushCheckpoint();
       if (delayMs > 0 && i < empresas.length - 1) await sleep(delayMs);
     }
+
+    await flushCheckpoint(true);
 
     setProgress(p => ({ ...p, done: p.total, nome: "" }));
     const autoSelect = new Set(
@@ -226,11 +276,23 @@ export default function EnriquecerWizard({ distritos }: { distritos: string[] })
 
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">Distrito</label>
-        <select value={distrito} onChange={e => { setDistrito(e.target.value); fetchCount(e.target.value, filtro, incluirJaPesquisados); }}
+        <select value={distrito} onChange={e => { setDistrito(e.target.value); fetchCount(e.target.value, filtro, incluirJaPesquisados, mesInicio); }}
           className="border border-gray-300 rounded px-3 py-2 text-sm w-full">
           <option value="">Todos os distritos</option>
           {distritos.map(d => <option key={d} value={d}>{d}</option>)}
         </select>
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Mês de início do contrato</label>
+        <select value={mesInicio} onChange={e => { setMesInicio(e.target.value); fetchCount(distrito, filtro, incluirJaPesquisados, e.target.value); }}
+          className="border border-gray-300 rounded px-3 py-2 text-sm w-full">
+          <option value="">Todos os meses</option>
+          {MESES.map(m => <option key={m.val} value={m.val}>{m.label}</option>)}
+        </select>
+        <p className="text-xs text-gray-400 mt-1">
+          Reduz o grupo a enriquecer de cada vez — útil em distritos com muitas empresas (ex. Lisboa).
+        </p>
       </div>
 
       <div>
@@ -239,7 +301,7 @@ export default function EnriquecerWizard({ distritos }: { distritos: string[] })
           {(Object.keys(FILTRO_LABELS) as Filtro[]).map(f => (
             <label key={f} className="flex items-center gap-2 text-sm cursor-pointer">
               <input type="radio" name="filtro" value={f} checked={filtro === f}
-                onChange={() => { setFiltro(f); fetchCount(distrito, f, incluirJaPesquisados); }} />
+                onChange={() => { setFiltro(f); fetchCount(distrito, f, incluirJaPesquisados, mesInicio); }} />
               {FILTRO_LABELS[f]}
             </label>
           ))}
@@ -288,7 +350,7 @@ export default function EnriquecerWizard({ distritos }: { distritos: string[] })
 
       <label className="flex items-center gap-2 text-sm cursor-pointer text-gray-600">
         <input type="checkbox" checked={incluirJaPesquisados}
-          onChange={e => { setIncluirJaPesquisados(e.target.checked); fetchCount(distrito, filtro, e.target.checked); }} />
+          onChange={e => { setIncluirJaPesquisados(e.target.checked); fetchCount(distrito, filtro, e.target.checked, mesInicio); }} />
         Incluir NIFs já pesquisados sem resultado
       </label>
 
@@ -381,9 +443,15 @@ export default function EnriquecerWizard({ distritos }: { distritos: string[] })
         <span>{pct}%</span>
       </div>
       {progress.nome && <p className="text-sm text-gray-600 truncate">A pesquisar: <strong>{progress.nome}</strong></p>}
+      <p className="text-xs text-gray-400">
+        ✓ {progress.guardadas} atualizações já guardadas na base de dados (a cada {CHECKPOINT_SIZE} empresas)
+      </p>
       <button onClick={() => { stopRef.current = true; }} className="text-sm text-red-500 hover:text-red-700 hover:underline">
         Parar
       </button>
+      <p className="text-xs text-gray-400">
+        Pode parar ou fechar a qualquer momento — o que já foi processado fica guardado. Ao recomeçar com os mesmos filtros, continua a partir daí.
+      </p>
     </div>
   );
 

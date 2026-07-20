@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
 import { jobStore } from "@/lib/enriquecimento/job-store";
 import { lookupNif } from "@/lib/enriquecimento/nifpt";
-import { buildWhere } from "../count/route";
+import { buildWhere } from "@/lib/enriquecimento/where";
 import { randomUUID } from "crypto";
 
 export const maxDuration = 300;

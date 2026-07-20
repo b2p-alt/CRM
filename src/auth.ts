@@ -9,6 +9,8 @@ const loginSchema = z.object({
   password: z.string().min(1),
 });
 
+const ROLE_REVALIDATE_MS = 5 * 60 * 1000; // 5 minutos
+
 export const { handlers, signIn, signOut, auth } = NextAuth({
   session: { strategy: "jwt" },
   pages: {
@@ -42,12 +44,29 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     }),
   ],
   callbacks: {
-    jwt({ token, user }) {
+    async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
         token.role = (user as { role: string }).role;
         token.mustChangePassword = (user as { mustChangePassword: boolean }).mustChangePassword;
+        token.roleCheckedAt = Date.now();
+        return token;
       }
+
+      // Revalida a role a partir da BD de tempos a tempos, para que uma promoção/despromoção
+      // feita em /utilizadores não fique presa no token até o utilizador fazer logout manual.
+      const lastChecked = (token.roleCheckedAt as number | undefined) ?? 0;
+      if (Date.now() - lastChecked > ROLE_REVALIDATE_MS) {
+        const dbUser = await prisma.user.findUnique({
+          where: { id: token.id as string },
+          select: { role: true, mustChangePassword: true },
+        });
+        if (!dbUser) return null; // utilizador eliminado — termina a sessão
+        token.role = dbUser.role;
+        token.mustChangePassword = dbUser.mustChangePassword;
+        token.roleCheckedAt = Date.now();
+      }
+
       return token;
     },
     session({ session, token }) {

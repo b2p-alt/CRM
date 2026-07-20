@@ -73,6 +73,31 @@ function extractFromJsonLd(html: string): {
   return { telephone: null, email: null, website: null };
 }
 
+// ── Extracção via this_page (fallback) ───────────────────────────────────
+//
+// Desde ~2026-07, o eInforma passou a devolver telephone/email vazios no
+// JSON-LD, mas os valores continuam na página, embutidos numa variável JS
+// de tracking interno (`this_page`), com o formato de path-segments
+// "telefone_ficha/<digitos>/" e "email_ficha/<valor url-encoded>/".
+
+function extractFromThisPage(html: string): { telephone: string | null; email: string | null } {
+  const m = html.match(/this_page\s*=\s*"([^"]*)"/);
+  if (!m) return { telephone: null, email: null };
+  const val = m[1];
+
+  const telMatch = val.match(/telefone_ficha\/([0-9]*)\//);
+  const telephone = telMatch && telMatch[1] ? telMatch[1] : null;
+
+  const emailMatch = val.match(/email_ficha\/([^/]*)\//);
+  let email: string | null = null;
+  if (emailMatch && emailMatch[1]) {
+    try { email = decodeURIComponent(emailMatch[1]).trim().toLowerCase() || null; }
+    catch { email = null; }
+  }
+
+  return { telephone, email };
+}
+
 // ── Função principal ───────────────────────────────────────────────────────
 
 export async function enrichNif(
@@ -121,7 +146,16 @@ export async function enrichNif(
       return { telefone: null, email: null, website: null, found: false };
     }
 
-    const { telephone, email: emailVal, website: websiteVal } = extractFromJsonLd(html);
+    const { telephone: telJsonLd, email: emailJsonLd, website: websiteVal } = extractFromJsonLd(html);
+
+    // Fallback: o JSON-LD deixou de trazer telephone/email — tenta a variável this_page
+    let telephone = telJsonLd;
+    let emailVal  = emailJsonLd;
+    if (!telephone || !emailVal) {
+      const fallback = extractFromThisPage(html);
+      telephone = telephone || fallback.telephone;
+      emailVal  = emailVal  || fallback.email;
+    }
 
     console.log(`[einforma] ${nifDigits}: tel=${telephone} email=${emailVal} web=${websiteVal}`);
 
