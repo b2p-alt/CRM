@@ -97,6 +97,26 @@ export default async function DashboardPage() {
               <p className="text-sm text-gray-500 mt-1">Importar pontos de entrega da Nabalia</p>
             </Link>
           )}
+          {session.user?.role === "MASTER" && (
+            <Link
+              href="/email/campanhas"
+              className="bg-white border border-gray-200 rounded-xl p-6 hover:border-blue-300 hover:shadow-sm transition"
+            >
+              <div className="text-2xl mb-2">✉️</div>
+              <h2 className="font-semibold text-gray-900">Campanhas de Email</h2>
+              <p className="text-sm text-gray-500 mt-1">Envio de emails a novos contactos</p>
+            </Link>
+          )}
+          {session.user?.role === "MASTER" && (
+            <Link
+              href="/admin/liberar-kanban"
+              className="bg-white border border-gray-200 rounded-xl p-6 hover:border-red-300 hover:shadow-sm transition"
+            >
+              <div className="text-2xl mb-2">🗂️</div>
+              <h2 className="font-semibold text-gray-900">Libertar Kanban</h2>
+              <p className="text-sm text-gray-500 mt-1">Libertar empresas em massa, por utilizador e coluna</p>
+            </Link>
+          )}
         </div>
       </main>
     </div>

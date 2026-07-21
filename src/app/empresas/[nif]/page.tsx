@@ -7,6 +7,7 @@ import EmpresaForm from "@/components/EmpresaForm";
 import NotasSection from "@/components/NotasSection";
 import InstalacoesSection from "@/components/InstalacoesSection";
 import EliminarEmpresaButton from "@/components/EliminarEmpresaButton";
+import EmailHistorySection from "@/components/EmailHistorySection";
 
 export default async function EmpresaDetailPage({
   params,
@@ -26,6 +27,10 @@ export default async function EmpresaDetailPage({
         include: { user: { select: { nome: true } } },
       },
       kanbanCard: { include: { user: { select: { nome: true } } } },
+      enviosEmail: {
+        orderBy: { createdAt: "desc" },
+        include: { campanha: { select: { nome: true, modeloEmail: { select: { nome: true } } } } },
+      },
     },
   });
 
@@ -35,6 +40,12 @@ export default async function EmpresaDetailPage({
   const notasSerialized = empresa.notas.map((n) => ({
     ...n,
     createdAt: n.createdAt.toISOString(),
+  }));
+
+  const enviosEmailSerialized = empresa.enviosEmail.map((e) => ({
+    ...e,
+    enviadoEm: e.enviadoEm ? e.enviadoEm.toISOString() : null,
+    abertoEm: e.abertoEm ? e.abertoEm.toISOString() : null,
   }));
 
   return (
@@ -84,12 +95,21 @@ export default async function EmpresaDetailPage({
             </section>
           </div>
 
-          {/* Right 40%: notas */}
-          <div className="min-w-0">
-            <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
-              Notas ({empresa.notas.length})
-            </h2>
-            <NotasSection empresaNif={nif} notas={notasSerialized} />
+          {/* Right 40%: notas + histórico de emails */}
+          <div className="min-w-0 space-y-5">
+            <section>
+              <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+                Notas ({empresa.notas.length})
+              </h2>
+              <NotasSection empresaNif={nif} notas={notasSerialized} />
+            </section>
+
+            <section>
+              <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+                Emails enviados ({empresa.enviosEmail.length})
+              </h2>
+              <EmailHistorySection envios={enviosEmailSerialized} />
+            </section>
           </div>
         </div>
       </main>

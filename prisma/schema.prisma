@@ -3,8 +3,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 // ─────────────────────────────────────────
@@ -29,6 +30,7 @@ model User {
 
   notas       Nota[]
   kanbanCards KanbanCard[]
+  campanhas   Campanha[]
 }
 
 // ─────────────────────────────────────────
@@ -61,6 +63,7 @@ model Empresa {
   notas        Nota[]
   instalacoes  Instalacao[]
   kanbanCard   KanbanCard?
+  enviosEmail  EnvioEmail[]
 }
 
 // ─────────────────────────────────────────
@@ -154,4 +157,88 @@ model KanbanCard {
 
   userId              String
   user                User         @relation(fields: [userId], references: [id])
+}
+
+// ─────────────────────────────────────────
+// EMAIL OUTREACH
+// ─────────────────────────────────────────
+
+model ContaEmailSMTP {
+  id              String   @id @default(cuid())
+  nome            String
+  host            String
+  porta           Int
+  usuario         String
+  passwordCifrada String
+  assinaturaHtml  String?
+  limiteDiario    Int      @default(950)
+  ativo           Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  campanhas       Campanha[]
+}
+
+model ModeloEmail {
+  id        String   @id @default(cuid())
+  nome      String
+  assunto   String
+  corpoHtml String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  campanhas Campanha[]
+}
+
+enum CampanhaStatus {
+  RASCUNHO
+  A_ENVIAR
+  PAUSADA_LIMITE
+  CONCLUIDA
+}
+
+model Campanha {
+  id            String         @id @default(cuid())
+  nome          String
+  mesFiltro     Int? // mês de início de contrato, 1-12 (independente do ano); nulo em campanhas de teste
+  teste         Boolean        @default(false)
+  status        CampanhaStatus @default(RASCUNHO)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  contaEmailId  String
+  contaEmail    ContaEmailSMTP @relation(fields: [contaEmailId], references: [id])
+
+  modeloEmailId String
+  modeloEmail   ModeloEmail    @relation(fields: [modeloEmailId], references: [id])
+
+  criadoPorId   String
+  criadoPor     User           @relation(fields: [criadoPorId], references: [id])
+
+  envios        EnvioEmail[]
+}
+
+enum EnvioStatus {
+  PENDENTE
+  ENVIANDO
+  ENVIADO
+  FALHOU
+}
+
+model EnvioEmail {
+  id            String      @id @default(cuid())
+  status        EnvioStatus @default(PENDENTE)
+  trackingToken String      @unique @default(cuid())
+  enviadoEm     DateTime?
+  abertoEm      DateTime?
+  erro          String?
+  createdAt     DateTime    @default(now())
+
+  campanhaId    String
+  campanha      Campanha    @relation(fields: [campanhaId], references: [id])
+
+  // Uma das duas é sempre preenchida: empresaNif (envio real) ou emailAvulso (envio de teste)
+  empresaNif    String?
+  empresa       Empresa?    @relation(fields: [empresaNif], references: [nif])
+  emailAvulso   String?
 }
