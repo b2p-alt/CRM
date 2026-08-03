@@ -2,7 +2,7 @@ import nodemailer from "nodemailer";
 import { decrypt } from "@/lib/crypto";
 import type { ContaEmailSMTP } from "@prisma/client";
 
-function getBaseUrl(): string {
+export function getBaseUrl(): string {
   return process.env.NEXT_PUBLIC_APP_URL ?? `https://${process.env.VERCEL_URL}`;
 }
 

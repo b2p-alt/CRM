@@ -31,6 +31,7 @@ export default function UtilizadoresPage() {
   const [form, setForm]           = useState<FormData>(EMPTY_FORM);
   const [saving, setSaving]       = useState(false);
   const [error, setError]         = useState("");
+  const [notice, setNotice]       = useState("");
 
   useEffect(() => { loadUsers(); }, []);
 
@@ -45,6 +46,7 @@ export default function UtilizadoresPage() {
     setEditUser(null);
     setForm(EMPTY_FORM);
     setError("");
+    setNotice("");
     setShowForm(true);
   }
 
@@ -76,7 +78,9 @@ export default function UtilizadoresPage() {
       const data = await res.json();
       setError(data.error ?? "Erro ao guardar");
     } else {
+      const data = await res.json();
       setShowForm(false);
+      setNotice(data.avisoEmail ?? "");
       loadUsers();
     }
     setSaving(false);
@@ -107,6 +111,13 @@ export default function UtilizadoresPage() {
       </header>
 
       <main className="p-6 max-w-4xl mx-auto">
+
+        {notice && (
+          <div className="mb-4 flex items-start justify-between gap-3 text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+            <span>{notice}</span>
+            <button onClick={() => setNotice("")} className="text-amber-500 hover:text-amber-700">✕</button>
+          </div>
+        )}
 
         {/* User list */}
         <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
