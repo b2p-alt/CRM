@@ -59,6 +59,7 @@ export async function POST(req: Request) {
       avisoEmail = "Utilizador criado, mas não há nenhuma conta de email ativa configurada em Email > Contas — não foi possível enviar o convite.";
     } else {
       try {
+        const link = `${getBaseUrl()}/primeiro-acesso?email=${encodeURIComponent(user.email)}`;
         await enviarEmail({
           conta,
           destinatario: user.email,
@@ -67,8 +68,7 @@ export async function POST(req: Request) {
             <p>Olá ${user.nome},</p>
             <p>Foi criada uma conta para si na plataforma B2P Energy.</p>
             <p>Para ativar a sua conta e definir a sua password, aceda a:</p>
-            <p><a href="${getBaseUrl()}/primeiro-acesso">${getBaseUrl()}/primeiro-acesso</a></p>
-            <p>Utilize o email <strong>${user.email}</strong> quando lhe for pedido.</p>
+            <p><a href="${link}">${link}</a></p>
           `,
         });
       } catch (err) {

@@ -1,33 +1,58 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { signIn } from "next-auth/react";
 import Link from "next/link";
 
 type Step = "email" | "password" | "done";
 
 export default function PrimeiroAcessoPage() {
+  return (
+    <Suspense>
+      <PrimeiroAcessoForm />
+    </Suspense>
+  );
+}
+
+function PrimeiroAcessoForm() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const emailFromLink = searchParams.get("email") ?? "";
+
   const [step, setStep]         = useState<Step>("email");
-  const [email, setEmail]       = useState("");
+  const [email, setEmail]       = useState(emailFromLink);
   const [password, setPassword] = useState("");
   const [confirm, setConfirm]   = useState("");
-  const [loading, setLoading]   = useState(false);
+  const [loading, setLoading]   = useState(!!emailFromLink);
   const [error, setError]       = useState("");
 
-  async function handleEmailSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  useEffect(() => {
+    if (!emailFromLink) return;
+    validarEmail(emailFromLink);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [emailFromLink]);
+
+  async function validarEmail(valor: string) {
     setError("");
     setLoading(true);
 
-    const res = await fetch(`/api/primeiro-acesso?email=${encodeURIComponent(email)}`);
+    const res = await fetch(`/api/primeiro-acesso?email=${encodeURIComponent(valor)}`);
     const data = await res.json();
 
     setLoading(false);
 
     if (!res.ok) {
       setError(data.error);
+      setStep("email");
     } else {
       setStep("password");
     }
+  }
+
+  async function handleEmailSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    await validarEmail(email);
   }
 
   async function handlePasswordSubmit(e: React.FormEvent) {
@@ -52,12 +77,20 @@ export default function PrimeiroAcessoPage() {
     });
 
     const data = await res.json();
-    setLoading(false);
 
     if (!res.ok) {
+      setLoading(false);
       setError(data.error);
-    } else {
+      return;
+    }
+
+    const result = await signIn("credentials", { email, password, redirect: false });
+    setLoading(false);
+
+    if (result?.error) {
       setStep("done");
+    } else {
+      router.push("/dashboard");
     }
   }
 
@@ -66,7 +99,11 @@ export default function PrimeiroAcessoPage() {
       <div className="w-full max-w-sm bg-white rounded-2xl shadow-md p-8">
         <img src="/logo-b2p.png" alt="B2P Energy" style={{ height: "56px", width: "auto" }} className="mb-6" />
 
-        {step === "email" && (
+        {step === "email" && loading && emailFromLink && !error && (
+          <p className="text-sm text-gray-500 text-center py-6">A validar o seu convite...</p>
+        )}
+
+        {step === "email" && !(loading && emailFromLink && !error) && (
           <>
             <h1 className="text-xl font-bold text-gray-900 mb-1">Primeiro acesso</h1>
             <p className="text-sm text-gray-500 mb-6">
@@ -126,7 +163,7 @@ export default function PrimeiroAcessoPage() {
           <div className="text-center">
             <div className="text-4xl mb-4">✅</div>
             <h1 className="text-xl font-bold text-gray-900 mb-2">Conta ativada!</h1>
-            <p className="text-sm text-gray-500 mb-6">A sua password foi definida com sucesso. Já pode iniciar sessão.</p>
+            <p className="text-sm text-gray-500 mb-6">A sua password foi definida com sucesso. Inicie sessão para continuar.</p>
             <Link href="/login"
               className="block w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 rounded-lg text-sm text-center">
               Ir para o login
