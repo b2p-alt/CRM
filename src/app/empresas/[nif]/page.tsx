@@ -29,7 +29,11 @@ export default async function EmpresaDetailPage({
       kanbanCard: { include: { user: { select: { nome: true } } } },
       enviosEmail: {
         orderBy: { createdAt: "desc" },
-        include: { campanha: { select: { nome: true, modeloEmail: { select: { nome: true } } } } },
+        include: {
+          campanha: { select: { nome: true, modeloEmail: { select: { nome: true } } } },
+          modeloEmail: { select: { nome: true } },
+          enviadoPor: { select: { nome: true } },
+        },
       },
     },
   });

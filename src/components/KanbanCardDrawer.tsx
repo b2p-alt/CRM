@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import EnviarEmailModal from "@/components/EnviarEmailModal";
 
 // ─── Constants ────────────────────────────────────────────────
 const COLUNAS = [
@@ -88,6 +89,7 @@ export default function KanbanCardDrawer({
   const [notas, setNotas]           = useState<Nota[]>([]);
   const [instalacoes, setInstalacoes] = useState<Instalacao[]>([]);
   const [loadingData, setLoadingData] = useState(true);
+  const [showEmailModal, setShowEmailModal] = useState(false);
 
   // Contact
   const [contact, setContact] = useState({
@@ -312,7 +314,17 @@ export default function KanbanCardDrawer({
               </span>
             )}
           </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl leading-none flex-shrink-0">✕</button>
+          <div className="flex items-center gap-3 flex-shrink-0">
+            {canEdit && (
+              <button
+                onClick={() => setShowEmailModal(true)}
+                className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-3.5 py-2 rounded-lg"
+              >
+                ✉️ Enviar Email
+              </button>
+            )}
+            <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl leading-none">✕</button>
+          </div>
         </div>
 
         {/* Body */}
@@ -564,6 +576,20 @@ export default function KanbanCardDrawer({
           </div>
         </div>
       </div>
+
+      {showEmailModal && (
+        <EnviarEmailModal
+          empresaNif={card.empresaNif}
+          empresaNome={nomeValue}
+          emailField={contact.email}
+          onClose={() => setShowEmailModal(false)}
+          onSent={(nota) => {
+            setNotas((prev) => [nota, ...prev]);
+            onNoteAdded?.(card.id, nota.createdAt);
+            setShowEmailModal(false);
+          }}
+        />
+      )}
     </>
   );
 }

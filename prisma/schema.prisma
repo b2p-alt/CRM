@@ -28,9 +28,11 @@ model User {
   createdAt          DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  notas       Nota[]
-  kanbanCards KanbanCard[]
-  campanhas   Campanha[]
+  notas          Nota[]
+  kanbanCards    KanbanCard[]
+  campanhas      Campanha[]
+  contaEmailSMTP ContaEmailSMTP?
+  emailsEnviados EnvioEmail[]
 }
 
 // ─────────────────────────────────────────
@@ -176,7 +178,13 @@ model ContaEmailSMTP {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
+  // Dono da conta (associado pelo Master); usada para resolver automaticamente
+  // a partir de que conta um envio manual (a partir do card) deve sair
+  userId          String?  @unique
+  user            User?    @relation(fields: [userId], references: [id])
+
   campanhas       Campanha[]
+  enviosManuais   EnvioEmail[] @relation("EnvioEmailConta")
 }
 
 model ModeloEmail {
@@ -187,7 +195,8 @@ model ModeloEmail {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  campanhas Campanha[]
+  campanhas     Campanha[]
+  enviosManuais EnvioEmail[] @relation("EnvioEmailModelo")
 }
 
 enum CampanhaStatus {
@@ -225,8 +234,14 @@ enum EnvioStatus {
   FALHOU
 }
 
+enum EnvioOrigem {
+  CAMPANHA // disparado em massa a partir de uma Campanha
+  MANUAL   // disparado a partir do botão "Enviar Email" no card da empresa
+}
+
 model EnvioEmail {
   id            String      @id @default(cuid())
+  origem        EnvioOrigem @default(CAMPANHA)
   status        EnvioStatus @default(PENDENTE)
   trackingToken String      @unique @default(cuid())
   enviadoEm     DateTime?
@@ -234,10 +249,28 @@ model EnvioEmail {
   erro          String?
   createdAt     DateTime    @default(now())
 
-  campanhaId    String
-  campanha      Campanha    @relation(fields: [campanhaId], references: [id])
+  // Message-ID devolvido pelo SMTP no envio; permite cruzar com o aviso de
+  // entrega (DSN) que o servidor do destinatário devolve à caixa do remetente
+  messageId     String?
+  dsnSolicitado Boolean     @default(false)
 
-  // Uma das duas é sempre preenchida: empresaNif (envio real) ou emailAvulso (envio de teste)
+  // Preenchido apenas em envios de campanha (origem = CAMPANHA)
+  campanhaId    String?
+  campanha      Campanha?       @relation(fields: [campanhaId], references: [id])
+
+  // Preenchidos apenas em envios manuais (origem = MANUAL), já que aqui não há
+  // Campanha a partir da qual derivar o modelo/conta/quem enviou
+  modeloEmailId    String?
+  modeloEmail      ModeloEmail?    @relation("EnvioEmailModelo", fields: [modeloEmailId], references: [id])
+  contaEmailId     String?
+  contaEmail       ContaEmailSMTP? @relation("EnvioEmailConta", fields: [contaEmailId], references: [id])
+  enviadoPorId     String?
+  enviadoPor       User?           @relation(fields: [enviadoPorId], references: [id])
+  assuntoEnviado   String? // snapshot do assunto realmente enviado (pode ter sido editado no modal)
+  corpoEnviadoHtml String? // snapshot do corpo realmente enviado (idem)
+  destinatarios    String? // emails escolhidos manualmente, separados por ';' (subconjunto de Empresa.email)
+
+  // Uma das duas é sempre preenchida: empresaNif (envio real) ou emailAvulso (envio de teste, só em campanhas)
   empresaNif    String?
   empresa       Empresa?    @relation(fields: [empresaNif], references: [nif])
   emailAvulso   String?

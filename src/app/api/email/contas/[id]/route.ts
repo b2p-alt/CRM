@@ -13,6 +13,8 @@ const SELECT = {
   limiteDiario: true,
   ativo: true,
   createdAt: true,
+  userId: true,
+  user: { select: { nome: true } },
 } as const;
 
 export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -22,7 +24,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
   }
 
   const { id } = await params;
-  const { nome, host, porta, usuario, password, assinaturaHtml, limiteDiario, ativo } = await req.json();
+  const { nome, host, porta, usuario, password, assinaturaHtml, limiteDiario, ativo, userId } = await req.json();
 
   const data: Record<string, unknown> = {};
   if (nome?.trim()) data.nome = nome.trim();
@@ -33,14 +35,21 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
   if (assinaturaHtml !== undefined) data.assinaturaHtml = assinaturaHtml || null;
   if (limiteDiario) data.limiteDiario = Number(limiteDiario);
   if (ativo !== undefined) data.ativo = Boolean(ativo);
+  if (userId !== undefined) data.userId = userId || null;
 
-  const conta = await prisma.contaEmailSMTP.update({
-    where: { id },
-    data,
-    select: SELECT,
-  });
-
-  return NextResponse.json(conta);
+  try {
+    const conta = await prisma.contaEmailSMTP.update({
+      where: { id },
+      data,
+      select: SELECT,
+    });
+    return NextResponse.json(conta);
+  } catch (err) {
+    if (err instanceof Error && "code" in err && err.code === "P2002") {
+      return NextResponse.json({ error: "Este utilizador já tem uma conta de email associada" }, { status: 409 });
+    }
+    throw err;
+  }
 }
 
 export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {

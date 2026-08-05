@@ -14,7 +14,11 @@ type Conta = {
   limiteDiario: number;
   ativo: boolean;
   createdAt: string;
+  userId: string | null;
+  user: { nome: string } | null;
 };
+
+type Utilizador = { id: string; nome: string };
 
 type FormData = {
   nome: string;
@@ -25,15 +29,17 @@ type FormData = {
   assinaturaHtml: string;
   limiteDiario: string;
   ativo: boolean;
+  userId: string;
 };
 
 const EMPTY_FORM: FormData = {
   nome: "", host: "", porta: "587", usuario: "", password: "",
-  assinaturaHtml: "", limiteDiario: "950", ativo: true,
+  assinaturaHtml: "", limiteDiario: "950", ativo: true, userId: "",
 };
 
 export default function ContasEmailPage() {
   const [contas, setContas]     = useState<Conta[]>([]);
+  const [utilizadores, setUtilizadores] = useState<Utilizador[]>([]);
   const [loading, setLoading]   = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editConta, setEditConta] = useState<Conta | null>(null);
@@ -41,7 +47,10 @@ export default function ContasEmailPage() {
   const [saving, setSaving]     = useState(false);
   const [error, setError]       = useState("");
 
-  useEffect(() => { loadContas(); }, []);
+  useEffect(() => {
+    loadContas();
+    fetch("/api/utilizadores").then((r) => r.json()).then((data) => setUtilizadores(Array.isArray(data) ? data : []));
+  }, []);
 
   async function loadContas() {
     setLoading(true);
@@ -62,7 +71,7 @@ export default function ContasEmailPage() {
     setForm({
       nome: c.nome, host: c.host, porta: String(c.porta), usuario: c.usuario,
       password: "", assinaturaHtml: c.assinaturaHtml ?? "",
-      limiteDiario: String(c.limiteDiario), ativo: c.ativo,
+      limiteDiario: String(c.limiteDiario), ativo: c.ativo, userId: c.userId ?? "",
     });
     setError("");
     setShowForm(true);
@@ -132,6 +141,7 @@ export default function ContasEmailPage() {
                   <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Nome</th>
                   <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Host</th>
                   <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Utilizador</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Associada a</th>
                   <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Limite/24h</th>
                   <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Estado</th>
                   <th className="px-4 py-3" />
@@ -143,6 +153,9 @@ export default function ContasEmailPage() {
                     <td className="px-4 py-3 font-medium text-gray-900">{c.nome}</td>
                     <td className="px-4 py-3 text-gray-600">{c.host}:{c.porta}</td>
                     <td className="px-4 py-3 text-gray-500">{c.usuario}</td>
+                    <td className="px-4 py-3 text-gray-500">
+                      {c.user ? c.user.nome : <span className="text-gray-300">— nenhum —</span>}
+                    </td>
                     <td className="px-4 py-3 text-gray-500">{c.limiteDiario}</td>
                     <td className="px-4 py-3">
                       <span className={`inline-block text-xs font-semibold px-2 py-0.5 rounded-full ${
@@ -199,6 +212,20 @@ export default function ContasEmailPage() {
 
                 <Field label="Limite de envios em 24h" type="number" value={form.limiteDiario}
                   onChange={(v) => setForm((f) => ({ ...f, limiteDiario: v }))} />
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Utilizador associado</label>
+                  <select value={form.userId} onChange={(e) => setForm((f) => ({ ...f, userId: e.target.value }))}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="">— nenhum —</option>
+                    {utilizadores.map((u) => (
+                      <option key={u.id} value={u.id}>{u.nome}</option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-gray-400 mt-1">
+                    Esta conta e assinatura serão usadas automaticamente quando este utilizador enviar email a partir de um card.
+                  </p>
+                </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Assinatura de email</label>

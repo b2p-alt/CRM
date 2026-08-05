@@ -25,7 +25,12 @@ export async function enviarEmail(params: {
   destinatario: string;
   assunto: string;
   html: string;
-}): Promise<void> {
+  // Pede ao servidor SMTP do destinatário uma notificação de ENTREGA (DSN, RFC 3461),
+  // não de leitura. Só funciona se o servidor de destino suportar a extensão DSN —
+  // muitos ignoram o pedido silenciosamente, por isso é "best effort", não garantido.
+  // A confirmação de leitura continua a ser feita à parte, pelo pixel de tracking.
+  solicitarAvisoEntrega?: boolean;
+}): Promise<{ messageId: string }> {
   const transporter = nodemailer.createTransport({
     host: params.conta.host,
     port: params.conta.porta,
@@ -36,10 +41,19 @@ export async function enviarEmail(params: {
     },
   });
 
-  await transporter.sendMail({
+  const info = await transporter.sendMail({
     from: params.conta.usuario,
     to: params.destinatario,
     subject: params.assunto,
     html: params.html,
+    ...(params.solicitarAvisoEntrega && {
+      dsn: {
+        return: "headers",
+        notify: ["success", "failure", "delay"],
+        recipient: params.conta.usuario,
+      },
+    }),
   });
+
+  return { messageId: info.messageId };
 }
