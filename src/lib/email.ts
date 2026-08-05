@@ -3,7 +3,7 @@ import { decrypt } from "@/lib/crypto";
 import type { ContaEmailSMTP } from "@prisma/client";
 
 export function getBaseUrl(): string {
-  return process.env.NEXT_PUBLIC_APP_URL ?? `https://${process.env.VERCEL_URL}`;
+  return process.env.APP_URL ?? `https://${process.env.VERCEL_URL}`;
 }
 
 export function trackingPixelHtml(trackingToken: string): string {
