@@ -203,6 +203,7 @@ enum CampanhaStatus {
   RASCUNHO
   A_ENVIAR
   PAUSADA_LIMITE
+  PAUSADA_MANUAL
   CONCLUIDA
 }
 

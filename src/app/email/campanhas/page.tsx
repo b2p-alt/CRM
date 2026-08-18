@@ -8,7 +8,7 @@ type Campanha = {
   nome: string;
   mesFiltro: number | null;
   teste: boolean;
-  status: "RASCUNHO" | "A_ENVIAR" | "PAUSADA_LIMITE" | "CONCLUIDA";
+  status: "RASCUNHO" | "A_ENVIAR" | "PAUSADA_LIMITE" | "PAUSADA_MANUAL" | "CONCLUIDA";
   createdAt: string;
   contaEmail: { nome: string };
   modeloEmail: { nome: string };
@@ -25,6 +25,7 @@ const STATUS_LABEL: Record<Campanha["status"], string> = {
   RASCUNHO: "Rascunho",
   A_ENVIAR: "A enviar",
   PAUSADA_LIMITE: "Pausada (limite diário)",
+  PAUSADA_MANUAL: "Pausada",
   CONCLUIDA: "Concluída",
 };
 
@@ -32,6 +33,7 @@ const STATUS_COR: Record<Campanha["status"], string> = {
   RASCUNHO: "bg-gray-100 text-gray-600",
   A_ENVIAR: "bg-blue-100 text-blue-700",
   PAUSADA_LIMITE: "bg-amber-100 text-amber-700",
+  PAUSADA_MANUAL: "bg-amber-100 text-amber-700",
   CONCLUIDA: "bg-green-100 text-green-700",
 };
 

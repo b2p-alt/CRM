@@ -18,7 +18,7 @@ type Campanha = {
   nome: string;
   mesFiltro: number | null;
   teste: boolean;
-  status: "RASCUNHO" | "A_ENVIAR" | "PAUSADA_LIMITE" | "CONCLUIDA";
+  status: "RASCUNHO" | "A_ENVIAR" | "PAUSADA_LIMITE" | "PAUSADA_MANUAL" | "CONCLUIDA";
   contaEmail: { nome: string };
   modeloEmail: { nome: string };
   criadoPor: { nome: string };
@@ -29,6 +29,7 @@ const STATUS_LABEL: Record<Campanha["status"], string> = {
   RASCUNHO: "Rascunho",
   A_ENVIAR: "A enviar",
   PAUSADA_LIMITE: "Pausada (limite diário)",
+  PAUSADA_MANUAL: "Pausada",
   CONCLUIDA: "Concluída",
 };
 
@@ -43,6 +44,7 @@ export default function CampanhaDetalhePage({ params }: { params: Promise<{ id: 
   const [campanha, setCampanha] = useState<Campanha | null>(null);
   const [selecionados, setSelecionados] = useState<Set<string>>(new Set());
   const [iniciando, setIniciando] = useState(false);
+  const [pausando, setPausando] = useState(false);
   const [adicionando, setAdicionando] = useState(false);
   const [msg, setMsg] = useState("");
 
@@ -82,6 +84,14 @@ export default function CampanhaDetalhePage({ params }: { params: Promise<{ id: 
     else { const d = await res.json(); alert(d.error ?? "Erro ao iniciar"); }
   }
 
+  async function handlePausar() {
+    setPausando(true);
+    const res = await fetch(`/api/email/campanhas/${id}/pausar`, { method: "POST" });
+    setPausando(false);
+    if (res.ok) load();
+    else { const d = await res.json(); alert(d.error ?? "Erro ao pausar"); }
+  }
+
   async function handleAdicionarKanban() {
     if (selecionados.size === 0) return;
     setAdicionando(true);
@@ -116,6 +126,18 @@ export default function CampanhaDetalhePage({ params }: { params: Promise<{ id: 
           <button onClick={handleIniciar} disabled={iniciando}
             className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-lg disabled:opacity-50">
             {iniciando ? "A iniciar..." : "Iniciar envio"}
+          </button>
+        )}
+        {campanha.status === "A_ENVIAR" && (
+          <button onClick={handlePausar} disabled={pausando}
+            className="bg-amber-500 hover:bg-amber-600 text-white text-sm font-medium px-4 py-2 rounded-lg disabled:opacity-50">
+            {pausando ? "A pausar..." : "Pausar envio"}
+          </button>
+        )}
+        {(campanha.status === "PAUSADA_LIMITE" || campanha.status === "PAUSADA_MANUAL") && (
+          <button onClick={handleIniciar} disabled={iniciando}
+            className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-lg disabled:opacity-50">
+            {iniciando ? "A retomar..." : "Retomar envio"}
           </button>
         )}
       </header>
