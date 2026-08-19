@@ -32,6 +32,14 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ nif
         include: { user: { select: { nome: true } } },
       },
       kanbanCard: { include: { user: { select: { nome: true } } } },
+      enviosEmail: {
+        where: { origem: "CAMPANHA" },
+        orderBy: { createdAt: "desc" },
+        select: {
+          id: true, status: true, enviadoEm: true, abertoEm: true, createdAt: true,
+          campanha: { select: { nome: true } },
+        },
+      },
     },
   });
 

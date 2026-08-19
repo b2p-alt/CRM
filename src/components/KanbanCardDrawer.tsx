@@ -56,6 +56,17 @@ function terminoInfo(mesTermino: string | null) {
 
 // ─── Types ────────────────────────────────────────────────────
 type Nota = { id: string; texto: string; createdAt: string; user: { nome: string } };
+type EnvioCampanha = {
+  id: string;
+  status: "PENDENTE" | "ENVIANDO" | "ENVIADO" | "FALHOU";
+  enviadoEm: string | null;
+  abertoEm: string | null;
+  createdAt: string;
+  campanha: { nome: string } | null;
+};
+const ENVIO_STATUS_LABEL: Record<EnvioCampanha["status"], string> = {
+  PENDENTE: "Pendente", ENVIANDO: "A enviar", ENVIADO: "Enviado", FALHOU: "Falhou",
+};
 type Instalacao = {
   id: string; cpe: string; tipoInstalacao: string; cicloTarifario: string;
   fornecedor: string | null; mesTermino: string | null; consumoAnual: number | null;
@@ -87,6 +98,7 @@ export default function KanbanCardDrawer({
   onContactSaved?: (cardId: string, patch: { telefone: string; email: string; quemAtende: string; responsavel: string }) => void;
 }) {
   const [notas, setNotas]           = useState<Nota[]>([]);
+  const [enviosCampanha, setEnviosCampanha] = useState<EnvioCampanha[]>([]);
   const [instalacoes, setInstalacoes] = useState<Instalacao[]>([]);
   const [loadingData, setLoadingData] = useState(true);
   const [showEmailModal, setShowEmailModal] = useState(false);
@@ -144,6 +156,7 @@ export default function KanbanCardDrawer({
       .then((data) => {
         const fetchedNotas: Nota[] = Array.isArray(data.notas) ? data.notas : [];
         setNotas(fetchedNotas);
+        setEnviosCampanha(Array.isArray(data.enviosEmail) ? data.enviosEmail : []);
         setInstalacoes(Array.isArray(data.instalacoes) ? data.instalacoes : []);
         setLoadingData(false);
 
@@ -264,6 +277,19 @@ export default function KanbanCardDrawer({
   const agendaTooltip = card.agendamentoData
     ? `Alerta agendado: ${new Date(card.agendamentoData).toLocaleDateString("pt-PT", { day: "2-digit", month: "long", year: "numeric" })}`
     : "";
+
+  // ── Merge older notes + campaign email history into one timeline ──
+  // (a manual email send already creates its own Nota; campaign sends don't,
+  // so they're shown here as context for whoever follows up by phone)
+  type TimelineItem =
+    | { tipo: "nota"; data: string; nota: Nota }
+    | { tipo: "email"; data: string; envio: EnvioCampanha };
+  const timeline: TimelineItem[] = [
+    ...notas.slice(1).map((nota): TimelineItem => ({ tipo: "nota", data: nota.createdAt, nota })),
+    ...enviosCampanha.map((envio): TimelineItem => ({
+      tipo: "email", data: envio.enviadoEm ?? envio.createdAt, envio,
+    })),
+  ].sort((a, b) => new Date(b.data).getTime() - new Date(a.data).getTime());
 
   return (
     <>
@@ -403,50 +429,67 @@ export default function KanbanCardDrawer({
               {/* Notes list */}
               {loadingData ? (
                 <p className="text-xs text-gray-400">A carregar...</p>
-              ) : notas.length === 0 ? (
+              ) : notas.length === 0 && timeline.length === 0 ? (
                 <p className="text-xs text-gray-400">Sem notas ainda</p>
               ) : (
                 <div className="space-y-2 overflow-y-auto">
                   {/* Last note */}
-                  <div className={`border rounded-xl p-3 relative group ${
-                    hasAgenda
-                      ? "bg-amber-50 border-amber-300"
-                      : "bg-blue-50 border-blue-200"
-                  }`}>
-                    <div className="flex items-center gap-1.5">
-                      <p className={`text-sm font-bold ${hasAgenda ? "text-amber-800" : "text-blue-800"}`}>
-                        🕐 {formatDate(notas[0].createdAt)}
+                  {notas.length > 0 && (
+                    <div className={`border rounded-xl p-3 relative group ${
+                      hasAgenda
+                        ? "bg-amber-50 border-amber-300"
+                        : "bg-blue-50 border-blue-200"
+                    }`}>
+                      <div className="flex items-center gap-1.5">
+                        <p className={`text-sm font-bold ${hasAgenda ? "text-amber-800" : "text-blue-800"}`}>
+                          🕐 {formatDate(notas[0].createdAt)}
+                        </p>
+                        {hasAgenda && (
+                          <span title={agendaTooltip} className="cursor-help text-sm leading-none">
+                            📅
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-sm text-gray-800 whitespace-pre-wrap mt-1">{notas[0].texto}</p>
+                      <p className={`text-xs mt-1 ${hasAgenda ? "text-amber-500" : "text-blue-400"}`}>
+                        {notas[0].user.nome}
                       </p>
-                      {hasAgenda && (
-                        <span title={agendaTooltip} className="cursor-help text-sm leading-none">
-                          📅
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-sm text-gray-800 whitespace-pre-wrap mt-1">{notas[0].texto}</p>
-                    <p className={`text-xs mt-1 ${hasAgenda ? "text-amber-500" : "text-blue-400"}`}>
-                      {notas[0].user.nome}
-                    </p>
-                    <button
-                      onClick={() => deleteNota(notas[0].id)}
-                      className="absolute top-2 right-2 text-gray-300 hover:text-red-400 opacity-0 group-hover:opacity-100 transition text-xs"
-                      title="Apagar nota"
-                    >✕</button>
-                  </div>
-
-                  {/* Other notes */}
-                  {notas.slice(1).map((nota) => (
-                    <div key={nota.id} className="border-l-2 border-gray-200 pl-3 relative group">
-                      <p className="text-xs font-semibold text-gray-600">{formatDate(nota.createdAt)}</p>
-                      <p className="text-sm text-gray-700 whitespace-pre-wrap mt-0.5">{nota.texto}</p>
-                      <p className="text-xs text-gray-400 mt-0.5">{nota.user.nome}</p>
                       <button
-                        onClick={() => deleteNota(nota.id)}
-                        className="absolute top-0 right-0 text-gray-300 hover:text-red-400 opacity-0 group-hover:opacity-100 transition text-xs"
+                        onClick={() => deleteNota(notas[0].id)}
+                        className="absolute top-2 right-2 text-gray-300 hover:text-red-400 opacity-0 group-hover:opacity-100 transition text-xs"
                         title="Apagar nota"
                       >✕</button>
                     </div>
-                  ))}
+                  )}
+
+                  {/* Other notes, interleaved with campaign email history by date */}
+                  {timeline.map((item) =>
+                    item.tipo === "nota" ? (
+                      <div key={`nota-${item.nota.id}`} className="border-l-2 border-gray-200 pl-3 relative group">
+                        <p className="text-xs font-semibold text-gray-600">{formatDate(item.nota.createdAt)}</p>
+                        <p className="text-sm text-gray-700 whitespace-pre-wrap mt-0.5">{item.nota.texto}</p>
+                        <p className="text-xs text-gray-400 mt-0.5">{item.nota.user.nome}</p>
+                        <button
+                          onClick={() => deleteNota(item.nota.id)}
+                          className="absolute top-0 right-0 text-gray-300 hover:text-red-400 opacity-0 group-hover:opacity-100 transition text-xs"
+                          title="Apagar nota"
+                        >✕</button>
+                      </div>
+                    ) : (
+                      <div key={`envio-${item.envio.id}`} className="border-l-2 border-purple-200 pl-3">
+                        <p className="text-xs font-semibold text-gray-600">
+                          {formatDate(item.data)} <span className="font-normal text-purple-400">· ✉️ Email de campanha</span>
+                        </p>
+                        <p className="text-sm text-gray-700 mt-0.5">
+                          {item.envio.campanha?.nome ?? "Campanha"}
+                          <span className="text-gray-400"> — {ENVIO_STATUS_LABEL[item.envio.status]}</span>
+                        </p>
+                        {item.envio.abertoEm && (
+                          <p className="text-xs text-green-600 mt-0.5">Aberto em {formatDate(item.envio.abertoEm)}</p>
+                        )}
+                      </div>
+                    )
+                  )}
                 </div>
               )}
             </div>
