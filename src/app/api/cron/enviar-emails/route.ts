@@ -9,12 +9,31 @@ export const maxDuration = 300;
 const LOTE_POR_TICK = 6;
 const INTERVALO_MS = 10_000;
 const JANELA_24H_MS = 24 * 60 * 60 * 1000;
+const ENVIANDO_STALE_MS = 10 * 60 * 1000;
 
 function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+// Se um envio ficar em ENVIANDO por mais tempo do que o suficiente para o processarCampanha
+// que o reservou terminar, esse processo morreu a meio (timeout/crash) e o envio ficaria preso
+// para sempre — a query de reserva só olha para PENDENTE. Marca-os como falhados para a
+// campanha poder concluir; não há forma segura de saber se o email chegou a sair.
+async function libertarEnviosPresos(campanhaId: string) {
+  const limite = new Date(Date.now() - ENVIANDO_STALE_MS);
+  const { count } = await prisma.envioEmail.updateMany({
+    where: { campanhaId, status: "ENVIANDO", updatedAt: { lt: limite } },
+    data: {
+      status: "FALHOU",
+      erro: "Envio interrompido antes de confirmar o resultado (processo terminou a meio) — marcado automaticamente como falhado após ficar preso em ENVIANDO.",
+    },
+  });
+  return count;
+}
+
 async function processarCampanha(campanha: Campanha & { contaEmail: ContaEmailSMTP }) {
+  await libertarEnviosPresos(campanha.id);
+
   const desde = new Date(Date.now() - JANELA_24H_MS);
 
   const enviadosUltimas24h = await prisma.envioEmail.count({

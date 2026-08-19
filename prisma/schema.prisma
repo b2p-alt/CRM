@@ -249,6 +249,7 @@ model EnvioEmail {
   abertoEm      DateTime?
   erro          String?
   createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @default(now()) @updatedAt
 
   // Message-ID devolvido pelo SMTP no envio; permite cruzar com o aviso de
   // entrega (DSN) que o servidor do destinatário devolve à caixa do remetente
