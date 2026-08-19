@@ -28,11 +28,43 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const { nome, mesFiltro, contaEmailId, modeloEmailId, nifsAdicionaisKanban } = await req.json();
+  const { nome, mesFiltro, contaEmailId, modeloEmailId, nifsAdicionaisKanban, nifsExplicitos } = await req.json();
+
+  if (!nome?.trim() || !contaEmailId || !modeloEmailId) {
+    return NextResponse.json({ error: "Nome, conta e modelo são obrigatórios" }, { status: 400 });
+  }
+
+  // Modo reenvio: lista explícita de NIFs (ex: quem não abriu uma campanha anterior),
+  // sem passar pelo cálculo de elegibilidade por mês de início de contrato.
+  if (Array.isArray(nifsExplicitos) && nifsExplicitos.length > 0) {
+    const empresas = await prisma.empresa.findMany({
+      where: { nif: { in: nifsExplicitos }, email: { not: null } },
+      select: { nif: true },
+    });
+
+    if (empresas.length === 0) {
+      return NextResponse.json({ error: "Nenhuma empresa válida na lista indicada" }, { status: 400 });
+    }
+
+    const campanha = await prisma.campanha.create({
+      data: {
+        nome: nome.trim(),
+        contaEmailId,
+        modeloEmailId,
+        criadoPorId: session.user!.id!,
+        envios: {
+          create: empresas.map((e) => ({ empresaNif: e.nif })),
+        },
+      },
+      include: { _count: { select: { envios: true } } },
+    });
+
+    return NextResponse.json(campanha, { status: 201 });
+  }
 
   const mes = Number(mesFiltro);
-  if (!nome?.trim() || !mes || mes < 1 || mes > 12 || !contaEmailId || !modeloEmailId) {
-    return NextResponse.json({ error: "Nome, mês (1-12), conta e modelo são obrigatórios" }, { status: 400 });
+  if (!mes || mes < 1 || mes > 12) {
+    return NextResponse.json({ error: "Mês (1-12) é obrigatório" }, { status: 400 });
   }
 
   const { elegiveis, jaNoKanban } = await calcularListasCampanha(mes);

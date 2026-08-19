@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, type MouseEvent } from "react";
 import Link from "next/link";
 
 type Campanha = {
@@ -40,10 +40,21 @@ const STATUS_COR: Record<Campanha["status"], string> = {
 export default function CampanhasPage() {
   const [campanhas, setCampanhas] = useState<Campanha[]>([]);
   const [loading, setLoading] = useState(true);
+  const [eliminandoId, setEliminandoId] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetch("/api/email/campanhas").then((r) => r.json()).then((cs) => { setCampanhas(cs); setLoading(false); });
-  }, []);
+  const load = () => fetch("/api/email/campanhas").then((r) => r.json()).then((cs) => { setCampanhas(cs); setLoading(false); });
+
+  useEffect(() => { load(); }, []);
+
+  async function handleEliminar(c: Campanha, e: MouseEvent) {
+    e.stopPropagation();
+    if (!confirm(`Eliminar a campanha "${c.nome}"? Esta ação não pode ser desfeita.`)) return;
+    setEliminandoId(c.id);
+    const res = await fetch(`/api/email/campanhas/${c.id}`, { method: "DELETE" });
+    setEliminandoId(null);
+    if (res.ok) load();
+    else { const d = await res.json(); alert(d.error ?? "Erro ao eliminar"); }
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -78,6 +89,7 @@ export default function CampanhasPage() {
                   <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Empresas</th>
                   <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Estado</th>
                   <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Criada por</th>
+                  <th className="px-4 py-3" />
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -100,6 +112,14 @@ export default function CampanhasPage() {
                       </span>
                     </td>
                     <td className="px-4 py-3 text-gray-500">{c.criadoPor.nome}</td>
+                    <td className="px-4 py-3 text-right">
+                      {c.status === "RASCUNHO" && (
+                        <button onClick={(e) => handleEliminar(c, e)} disabled={eliminandoId === c.id}
+                          className="text-xs text-red-600 hover:text-red-700 font-medium disabled:opacity-50">
+                          {eliminandoId === c.id ? "A eliminar..." : "Eliminar"}
+                        </button>
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>
