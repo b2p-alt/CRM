@@ -78,15 +78,20 @@ function buildPostalCriteria(from: string, to: string): string {
 
 export async function searchCpe(
   codPostal: string,
-  voltageCode: string,
+  voltageCode: string | string[],
   codPostalAte = "",
 ): Promise<RawRecord[]> {
   const token = await getToken();
   const postalCriteria = buildPostalCriteria(codPostal, codPostalAte);
+  // Sintaxe de filtro do Dynamics NAV: "|" separa valores em OR (ex: "MT|BTE")
+  const voltageCriteria = (Array.isArray(voltageCode) ? voltageCode : [voltageCode])
+    .map((v) => v.trim())
+    .filter(Boolean)
+    .join("|");
 
   const filtersXml = [
-    postalCriteria ? `<filter><Field>Postal_Cod</Field><Criteria>${postalCriteria}</Criteria></filter>` : "",
-    voltageCode    ? `<filter><Field>Voltage_Code</Field><Criteria>${voltageCode.trim()}</Criteria></filter>` : "",
+    postalCriteria   ? `<filter><Field>Postal_Cod</Field><Criteria>${postalCriteria}</Criteria></filter>` : "",
+    voltageCriteria  ? `<filter><Field>Voltage_Code</Field><Criteria>${voltageCriteria}</Criteria></filter>` : "",
   ].join("");
 
   const headers = {

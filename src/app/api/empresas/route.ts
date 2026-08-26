@@ -16,6 +16,7 @@ const empresaSchema = z.object({
   localidade: z.string().optional(),
   quemAtende: z.string().optional(),
   responsavel: z.string().optional(),
+  empresaPublica: z.boolean().optional(),
 });
 
 export async function GET(req: NextRequest) {
@@ -29,6 +30,7 @@ export async function GET(req: NextRequest) {
   const nome = searchParams.get("nome");
   const tipoInstalacao = searchParams.get("tipoInstalacao");
   const mesInicio = searchParams.get("mesInicio"); // 1-12
+  const publica = searchParams.get("publica"); // "sim" | "nao"
 
   // If mesInicio filter is active, get matching NIFs via raw SQL
   let nifsComMesInicio: string[] | null = null;
@@ -52,6 +54,8 @@ export async function GET(req: NextRequest) {
         instalacoes: { some: { tipoInstalacao: tipoInstalacao as never } },
       }),
       ...(nifsComMesInicio !== null && { nif: { in: nifsComMesInicio } }),
+      ...(publica === "sim" && { empresaPublica: true }),
+      ...(publica === "nao" && { empresaPublica: false }),
       kanbanCard: null,
     },
     include: {

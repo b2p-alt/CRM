@@ -11,7 +11,7 @@ type Props = {
     nif: string; nome: string; telefone?: string | null; email?: string | null;
     website?: string | null; morada?: string | null; distrito?: string | null;
     localidade?: string | null; quemAtende?: string | null; responsavel?: string | null;
-    nomeComercial?: string | null;
+    nomeComercial?: string | null; empresaPublica?: boolean;
   };
 };
 
@@ -31,6 +31,7 @@ export default function EmpresaForm({ distritos, distritosLocalidades, empresa, 
     quemAtende: empresa?.quemAtende || "",
     responsavel: empresa?.responsavel || "",
   });
+  const [empresaPublica, setEmpresaPublica] = useState(empresa?.empresaPublica ?? false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -51,7 +52,7 @@ export default function EmpresaForm({ distritos, distritosLocalidades, empresa, 
     const res = await fetch(url, {
       method,
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(form),
+      body: JSON.stringify({ ...form, empresaPublica }),
     });
 
     setLoading(false);
@@ -142,6 +143,15 @@ export default function EmpresaForm({ distritos, distritosLocalidades, empresa, 
         {field("Quem atende o telefone", "quemAtende")}
         {field("Responsável", "responsavel")}
       </div>
+
+      <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+        <input
+          type="checkbox"
+          checked={empresaPublica}
+          onChange={(e) => setEmpresaPublica(e.target.checked)}
+        />
+        Empresa pública (administração pública)
+      </label>
 
       {error && <p className="text-sm text-red-600">{error}</p>}
 

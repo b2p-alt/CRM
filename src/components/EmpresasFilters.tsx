@@ -30,6 +30,7 @@ export default function EmpresasFilters({ distritos, distritosLocalidades, filte
   const [nome, setNome]           = useState(filters.nome || "");
   const [tipoInstalacao, setTipoInstalacao] = useState(filters.tipoInstalacao || "");
   const [mesInicio, setMesInicio] = useState(filters.mesInicio || "");
+  const [publica, setPublica] = useState(filters.publica || "");
 
   const localidades = distrito ? distritosLocalidades[distrito] || [] : [];
 
@@ -46,11 +47,12 @@ export default function EmpresasFilters({ distritos, distritosLocalidades, filte
     if (nome) params.set("nome", nome);
     if (tipoInstalacao) params.set("tipoInstalacao", tipoInstalacao);
     if (mesInicio) params.set("mesInicio", mesInicio);
+    if (publica) params.set("publica", publica);
     router.push(`${pathname}?${params.toString()}`);
   }
 
   function clearFilters() {
-    setQ(""); setDistrito(""); setLocalidade(""); setNif(""); setNome(""); setTipoInstalacao(""); setMesInicio("");
+    setQ(""); setDistrito(""); setLocalidade(""); setNif(""); setNome(""); setTipoInstalacao(""); setMesInicio(""); setPublica("");
     router.push(pathname);
   }
 
@@ -63,7 +65,7 @@ export default function EmpresasFilters({ distritos, distritosLocalidades, filte
         onKeyDown={(e) => e.key === "Enter" && applyFilters()}
         className="w-full border border-blue-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
       />
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
         <input
           placeholder="NIF"
           value={nif}
@@ -100,6 +102,15 @@ export default function EmpresasFilters({ distritos, distritosLocalidades, filte
         >
           <option value="">Tipo de instalação</option>
           {TIPOS.map((t) => <option key={t} value={t}>{t}</option>)}
+        </select>
+        <select
+          value={publica}
+          onChange={(e) => setPublica(e.target.value)}
+          className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
+          <option value="">Pública: todas</option>
+          <option value="sim">Só públicas</option>
+          <option value="nao">Só privadas</option>
         </select>
       </div>
       <div className="mt-2">

@@ -52,3 +52,17 @@ Thumbs.db
 
 # package-lock (gerado automaticamente)
 package-lock.json
+
+# Claude Code (config local, pode conter segredos em permissões de comandos)
+.claude/
+
+# Dados OCR (binários grandes, instalar à parte se necessário)
+*.traineddata
+
+# Credenciais/tokens locais de scripts (Nabalia)
+scripts/.nabalia_creds.json
+scripts/.nabalia_token.json
+
+# Exports e relatórios de trabalho (não são código-fonte)
+import-contacts-report.txt
+campanha-*.csv

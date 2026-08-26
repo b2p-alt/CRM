@@ -56,6 +56,8 @@ model Empresa {
   rascunho        Boolean  @default(false)
   importProblemas String?  // razões de importação problemática (JSON)
 
+  empresaPublica  Boolean  @default(false)
+
   nomeComercial        String?   // nome fiscal registado no NIF.pt (preenchido pelo enriquecimento)
 
   enriquecimentoStatus String?   // "encontrado" | "sem_contactos" | "sem_dados" | "nif_invalido"

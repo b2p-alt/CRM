@@ -13,6 +13,7 @@ const ROLE_REVALIDATE_MS = 5 * 60 * 1000; // 5 minutos
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   session: { strategy: "jwt" },
+  trustHost: true,
   pages: {
     signIn: "/login",
   },

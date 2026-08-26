@@ -16,6 +16,7 @@ const updateSchema = z.object({
   localidade: z.string().optional(),
   quemAtende: z.string().optional(),
   responsavel: z.string().optional(),
+  empresaPublica: z.boolean().optional(),
 });
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ nif: string }> }) {

@@ -17,7 +17,7 @@ export default function Step1NabaliaPesquisa({ onDone }: {
 }) {
   const [codPostal,    setCodPostal]    = useState("");
   const [codPostalAte, setCodPostalAte] = useState("");
-  const [voltageCode,  setVoltageCode]  = useState("");
+  const [voltageCodes, setVoltageCodes] = useState<string[]>([]);
   const [distrito,    setDistrito]    = useState("");
   const [rows,        setRows]        = useState<RawRow[]>([]);
   const [selected,    setSelected]    = useState<Set<string>>(new Set());
@@ -28,7 +28,7 @@ export default function Step1NabaliaPesquisa({ onDone }: {
 
   async function handleSearch(e: React.FormEvent) {
     e.preventDefault();
-    if (!codPostal && !voltageCode) return;
+    if (!codPostal && voltageCodes.length === 0) return;
     setLoading(true);
     setError("");
     setRows([]);
@@ -39,7 +39,7 @@ export default function Step1NabaliaPesquisa({ onDone }: {
       const res = await fetch("/api/admin/nabalia-cpe", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ codPostal, codPostalAte, voltageCode }),
+        body: JSON.stringify({ codPostal, codPostalAte, voltageCode: voltageCodes }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Erro desconhecido");
@@ -53,6 +53,12 @@ export default function Step1NabaliaPesquisa({ onDone }: {
     } finally {
       setLoading(false);
     }
+  }
+
+  function toggleVoltage(v: string) {
+    setVoltageCodes((prev) =>
+      prev.includes(v) ? prev.filter((x) => x !== v) : [...prev, v]
+    );
   }
 
   function toggleAll() {
@@ -146,24 +152,33 @@ export default function Step1NabaliaPesquisa({ onDone }: {
           </div>
         </div>
         <div>
-          <label className="block text-xs font-medium text-gray-500 mb-1">Nível de Tensão</label>
-          <select
-            value={voltageCode}
-            onChange={(e) => setVoltageCode(e.target.value)}
-            className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="">Todos</option>
-            <option value="MT">MT</option>
-            <option value="BTE">BTE</option>
-            <option value="AT">AT</option>
-            <option value="MAT">MAT</option>
-            <option value="BTN">BTN</option>
-          </select>
+          <label className="block text-xs font-medium text-gray-500 mb-1">
+            Nível de Tensão {voltageCodes.length === 0 && "(Todos)"}
+          </label>
+          <div className="flex gap-1.5">
+            {["MT", "BTE", "AT", "MAT", "BTN"].map((v) => {
+              const active = voltageCodes.includes(v);
+              return (
+                <button
+                  key={v}
+                  type="button"
+                  onClick={() => toggleVoltage(v)}
+                  className={`px-2.5 py-2 rounded-lg text-sm font-medium border transition ${
+                    active
+                      ? "bg-blue-600 border-blue-600 text-white"
+                      : "bg-white border-gray-300 text-gray-600 hover:bg-gray-50"
+                  }`}
+                >
+                  {v}
+                </button>
+              );
+            })}
+          </div>
         </div>
         <div className="flex flex-col gap-1">
           <button
             type="submit"
-            disabled={loading || (!codPostal && !voltageCode)}
+            disabled={loading || (!codPostal && voltageCodes.length === 0)}
             className="bg-blue-600 text-white px-5 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition"
           >
             {loading ? "A pesquisar..." : "Pesquisar"}
