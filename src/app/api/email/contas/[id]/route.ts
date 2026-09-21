@@ -1,6 +1,7 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { encrypt } from "@/lib/crypto";
+import { normalizeSmtpHost } from "@/lib/email";
 import { NextResponse } from "next/server";
 
 const SELECT = {
@@ -28,7 +29,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
 
   const data: Record<string, unknown> = {};
   if (nome?.trim()) data.nome = nome.trim();
-  if (host?.trim()) data.host = host.trim();
+  if (host?.trim()) data.host = normalizeSmtpHost(host);
   if (porta) data.porta = Number(porta);
   if (usuario?.trim()) data.usuario = usuario.trim();
   if (password?.trim()) data.passwordCifrada = encrypt(password);

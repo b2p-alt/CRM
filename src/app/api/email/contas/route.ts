@@ -1,6 +1,7 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { encrypt } from "@/lib/crypto";
+import { normalizeSmtpHost } from "@/lib/email";
 import { NextResponse } from "next/server";
 
 const SELECT = {
@@ -47,7 +48,7 @@ export async function POST(req: Request) {
     const conta = await prisma.contaEmailSMTP.create({
       data: {
         nome: nome.trim(),
-        host: host.trim(),
+        host: normalizeSmtpHost(host),
         porta: Number(porta),
         usuario: usuario.trim(),
         passwordCifrada: encrypt(password),

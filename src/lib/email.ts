@@ -2,6 +2,13 @@ import nodemailer from "nodemailer";
 import { decrypt } from "@/lib/crypto";
 import type { ContaEmailSMTP } from "@prisma/client";
 
+// Alguns utilizadores colam o endereço do servidor SMTP como se fosse um URL
+// (ex: "http://mail.exemplo.pt/"). O nodemailer espera só o hostname —
+// mantê-lo assim faz a resolução DNS falhar (getaddrinfo).
+export function normalizeSmtpHost(host: string): string {
+  return host.trim().replace(/^https?:\/\//i, "").replace(/\/+$/, "");
+}
+
 export function getBaseUrl(): string {
   return process.env.APP_URL ?? `https://${process.env.VERCEL_URL}`;
 }
