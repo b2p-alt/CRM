@@ -80,6 +80,7 @@ export async function searchCpe(
   codPostal: string,
   voltageCode: string | string[],
   codPostalAte = "",
+  nipc = "",
 ): Promise<RawRecord[]> {
   const token = await getToken();
   const postalCriteria = buildPostalCriteria(codPostal, codPostalAte);
@@ -88,10 +89,14 @@ export async function searchCpe(
     .map((v) => v.trim())
     .filter(Boolean)
     .join("|");
+  // O campo de filtro é "NIPC" (não "VAT_No") e a Criteria tem de incluir o prefixo "PT"
+  const nipcDigits = nipc.trim().toUpperCase().replace(/^PT/, "").replace(/[^0-9]/g, "");
+  const nipcCriteria = nipcDigits ? `PT${nipcDigits}` : "";
 
   const filtersXml = [
     postalCriteria   ? `<filter><Field>Postal_Cod</Field><Criteria>${postalCriteria}</Criteria></filter>` : "",
     voltageCriteria  ? `<filter><Field>Voltage_Code</Field><Criteria>${voltageCriteria}</Criteria></filter>` : "",
+    nipcCriteria     ? `<filter><Field>NIPC</Field><Criteria>${nipcCriteria}</Criteria></filter>` : "",
   ].join("");
 
   const headers = {

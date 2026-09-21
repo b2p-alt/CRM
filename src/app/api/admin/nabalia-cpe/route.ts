@@ -8,16 +8,16 @@ export async function POST(req: NextRequest) {
   if (!session || session.user.role !== "MASTER")
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-  const { codPostal, codPostalAte, voltageCode } = await req.json();
+  const { codPostal, codPostalAte, voltageCode, nipc } = await req.json();
   const voltageCodes: string[] = Array.isArray(voltageCode)
     ? voltageCode
     : voltageCode ? [voltageCode] : [];
 
-  if (!codPostal && voltageCodes.length === 0)
+  if (!codPostal && voltageCodes.length === 0 && !nipc)
     return NextResponse.json({ error: "Indique pelo menos um filtro" }, { status: 400 });
 
   try {
-    const records = await searchCpe(codPostal ?? "", voltageCodes, codPostalAte ?? "");
+    const records = await searchCpe(codPostal ?? "", voltageCodes, codPostalAte ?? "", nipc ?? "");
 
     // Verificar quais NICs já existem no CRM
     const nics = [...new Set(records.map((r) => normalizeNipc(r.VAT_No ?? r.NIPC ?? "")))].filter(Boolean);

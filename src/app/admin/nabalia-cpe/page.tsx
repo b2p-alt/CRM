@@ -17,7 +17,7 @@ export default async function NabaliaCpePage() {
         </Link>
         <div className="flex-1">
           <h1 className="text-lg font-semibold text-gray-900">Importar CPE — Nabalia</h1>
-          <p className="text-xs text-gray-400">Pesquisa, revisão e criação de rascunhos por código postal</p>
+          <p className="text-xs text-gray-400">Pesquisa, revisão e criação de rascunhos por código postal ou NIF</p>
         </div>
       </header>
 
