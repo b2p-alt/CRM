@@ -21,6 +21,7 @@ export default function NovaCampanhaPage() {
   const router = useRouter();
 
   const [mes, setMes] = useState("");
+  const [publica, setPublica] = useState("");
   const [listas, setListas] = useState<Listas | null>(null);
   const [loadingListas, setLoadingListas] = useState(false);
   const [selecionadosKanban, setSelecionadosKanban] = useState<Set<string>>(new Set());
@@ -47,14 +48,16 @@ export default function NovaCampanhaPage() {
   }, []);
 
   useEffect(() => {
-    if (!mes) { setListas(null); return; }
     setLoadingListas(true);
     setSelecionadosKanban(new Set());
-    fetch(`/api/email/campanhas/preview?mes=${mes}`)
+    const params = new URLSearchParams();
+    if (mes) params.set("mes", mes);
+    if (publica) params.set("publica", publica);
+    fetch(`/api/email/campanhas/preview?${params.toString()}`)
       .then((r) => r.json())
       .then(setListas)
       .finally(() => setLoadingListas(false));
-  }, [mes]);
+  }, [mes, publica]);
 
   function toggleKanban(nif: string) {
     setSelecionadosKanban((prev) => {
@@ -68,8 +71,8 @@ export default function NovaCampanhaPage() {
 
   async function handleCriar() {
     setError("");
-    if (!nomeCampanha.trim() || !mes || !contaEmailId || !modeloEmailId) {
-      setError("Preencha o nome, o mês, a conta e o modelo.");
+    if (!nomeCampanha.trim() || !contaEmailId || !modeloEmailId) {
+      setError("Preencha o nome, a conta e o modelo.");
       return;
     }
     setSaving(true);
@@ -79,6 +82,7 @@ export default function NovaCampanhaPage() {
       body: JSON.stringify({
         nome: nomeCampanha,
         mesFiltro: mes,
+        publicaFiltro: publica,
         contaEmailId,
         modeloEmailId,
         nifsAdicionaisKanban: Array.from(selecionadosKanban),
@@ -159,13 +163,26 @@ export default function NovaCampanhaPage() {
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Mês de início de contrato *</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Mês de início de contrato</label>
               <select value={mes} onChange={(e) => setMes(e.target.value)}
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-                <option value="">Selecione o mês...</option>
+                <option value="">Todos os meses</option>
                 {MESES.map((m) => <option key={m.val} value={m.val}>{m.label}</option>)}
               </select>
             </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Tipo de empresa</label>
+              <select value={publica} onChange={(e) => setPublica(e.target.value)}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <option value="">Pública: todas</option>
+                <option value="sim">Só públicas</option>
+                <option value="nao">Só privadas</option>
+              </select>
+            </div>
+            <div />
           </div>
 
           <div className="grid grid-cols-2 gap-4">

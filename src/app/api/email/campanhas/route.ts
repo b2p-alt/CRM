@@ -28,7 +28,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const { nome, mesFiltro, contaEmailId, modeloEmailId, nifsAdicionaisKanban, nifsExplicitos } = await req.json();
+  const { nome, mesFiltro, publicaFiltro, contaEmailId, modeloEmailId, nifsAdicionaisKanban, nifsExplicitos } = await req.json();
 
   if (!nome?.trim() || !contaEmailId || !modeloEmailId) {
     return NextResponse.json({ error: "Nome, conta e modelo são obrigatórios" }, { status: 400 });
@@ -62,12 +62,17 @@ export async function POST(req: Request) {
     return NextResponse.json(campanha, { status: 201 });
   }
 
-  const mes = Number(mesFiltro);
-  if (!mes || mes < 1 || mes > 12) {
-    return NextResponse.json({ error: "Mês (1-12) é obrigatório" }, { status: 400 });
+  let mes: number | null = null;
+  if (mesFiltro !== undefined && mesFiltro !== null && mesFiltro !== "") {
+    mes = Number(mesFiltro);
+    if (!mes || mes < 1 || mes > 12) {
+      return NextResponse.json({ error: "Mês inválido (esperado 1-12)" }, { status: 400 });
+    }
   }
 
-  const { elegiveis, jaNoKanban } = await calcularListasCampanha(mes);
+  const publica = publicaFiltro === "sim" ? true : publicaFiltro === "nao" ? false : null;
+
+  const { elegiveis, jaNoKanban } = await calcularListasCampanha(mes, publica);
 
   const kanbanSelecionados = new Set<string>(Array.isArray(nifsAdicionaisKanban) ? nifsAdicionaisKanban : []);
   const incluidos = [
@@ -76,7 +81,7 @@ export async function POST(req: Request) {
   ];
 
   if (incluidos.length === 0) {
-    return NextResponse.json({ error: "Nenhuma empresa elegível para este mês" }, { status: 400 });
+    return NextResponse.json({ error: "Nenhuma empresa elegível com estes filtros" }, { status: 400 });
   }
 
   const campanha = await prisma.campanha.create({

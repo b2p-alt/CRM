@@ -14,9 +14,10 @@ export async function GET(req: NextRequest) {
   const filtro                = searchParams.get("filtro") || "ambos";
   const mesInicio              = searchParams.get("mesInicio") || undefined;
   const incluirJaPesquisados  = searchParams.get("incluirJaPesquisados") === "1";
+  const publica                = searchParams.get("publica") || undefined;
 
   const nifsComMesInicio = await getNifsComMesInicio(mesInicio);
-  const where = buildWhere(distrito, filtro, incluirJaPesquisados, nifsComMesInicio);
+  const where = buildWhere(distrito, filtro, incluirJaPesquisados, nifsComMesInicio, publica);
   const count = await prisma.empresa.count({ where });
   return NextResponse.json({ count });
 }

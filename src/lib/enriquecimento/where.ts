@@ -18,6 +18,7 @@ export function buildWhere(
   filtro: string,
   incluirJaPesquisados = false,
   nifsComMesInicio: string[] | null = null,
+  publica: string | undefined = undefined,
 ) {
   const semTelefone = { OR: [{ telefone: null }, { telefone: "" }] };
   const semEmail    = { OR: [{ email: null }, { email: "" }] };
@@ -37,6 +38,8 @@ export function buildWhere(
     NOT: notConditions,
     ...(distrito ? { distrito } : {}),
     ...(nifsComMesInicio !== null ? { nif: { in: nifsComMesInicio } } : {}),
+    ...(publica === "sim" ? { empresaPublica: true } : {}),
+    ...(publica === "nao" ? { empresaPublica: false } : {}),
     ...contactFilter,
   };
 }

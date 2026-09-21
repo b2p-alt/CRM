@@ -2,18 +2,22 @@ import { prisma } from "@/lib/prisma";
 
 export type EmpresaResumo = { nif: string; nome: string; email: string };
 
-export async function calcularListasCampanha(mes: number) {
-  const rows = await prisma.$queryRaw<{ empresaNif: string }[]>`
-    SELECT DISTINCT "empresaNif"
-    FROM "Instalacao"
-    WHERE EXTRACT(MONTH FROM "dataInicioContrato") = ${mes}
-  `;
-  const nifs = rows.map((r) => r.empresaNif);
+export async function calcularListasCampanha(mes: number | null, publica: boolean | null = null) {
+  let nifsComMes: string[] | null = null;
+  if (mes !== null) {
+    const rows = await prisma.$queryRaw<{ empresaNif: string }[]>`
+      SELECT DISTINCT "empresaNif"
+      FROM "Instalacao"
+      WHERE EXTRACT(MONTH FROM "dataInicioContrato") = ${mes}
+    `;
+    nifsComMes = rows.map((r) => r.empresaNif);
+  }
 
   const empresas = await prisma.empresa.findMany({
     where: {
-      nif: { in: nifs },
       email: { not: null },
+      ...(nifsComMes !== null && { nif: { in: nifsComMes } }),
+      ...(publica !== null && { empresaPublica: publica }),
     },
     select: {
       nif: true,

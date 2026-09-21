@@ -73,6 +73,7 @@ export default function EnriquecerWizard({ distritos }: { distritos: string[] })
   const [step, setStep]       = useState<Step>("config");
   const [distrito, setDistrito] = useState("");
   const [mesInicio, setMesInicio] = useState("");
+  const [publica, setPublica] = useState("");
   const [filtro, setFiltro]   = useState<Filtro>("ambos");
   const [fonte, setFonte]     = useState<Fonte>("nifpt");
   const [delayMs, setDelayMs] = useState(300);
@@ -93,12 +94,13 @@ export default function EnriquecerWizard({ distritos }: { distritos: string[] })
 
   const stopRef = useRef(false);
 
-  async function fetchCount(d: string, f: Filtro, ijp: boolean, mi: string) {
+  async function fetchCount(d: string, f: Filtro, ijp: boolean, mi: string, pub: string) {
     if (!d) { setCount(null); return; }
     setLoadingCount(true);
     const p = new URLSearchParams({ distrito: d, filtro: f });
     if (ijp) p.set("incluirJaPesquisados", "1");
     if (mi) p.set("mesInicio", mi);
+    if (pub) p.set("publica", pub);
     const res = await fetch(`/api/admin/enriquecer/count?${p}`);
     const data = await res.json();
     setCount(data.count ?? 0);
@@ -111,6 +113,7 @@ export default function EnriquecerWizard({ distritos }: { distritos: string[] })
     if (distrito) p.set("distrito", distrito);
     if (mesInicio) p.set("mesInicio", mesInicio);
     if (incluirJaPesquisados) p.set("incluirJaPesquisados", "1");
+    if (publica) p.set("publica", publica);
     const res = await fetch(`/api/admin/enriquecer/lista?${p}`);
     const empresas: Empresa[] = await res.json();
     if (!empresas.length) { alert("Nenhuma empresa encontrada."); setLoadingLista(false); return; }
@@ -276,7 +279,7 @@ export default function EnriquecerWizard({ distritos }: { distritos: string[] })
 
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">Distrito</label>
-        <select value={distrito} onChange={e => { setDistrito(e.target.value); fetchCount(e.target.value, filtro, incluirJaPesquisados, mesInicio); }}
+        <select value={distrito} onChange={e => { setDistrito(e.target.value); fetchCount(e.target.value, filtro, incluirJaPesquisados, mesInicio, publica); }}
           className="border border-gray-300 rounded px-3 py-2 text-sm w-full">
           <option value="">Todos os distritos</option>
           {distritos.map(d => <option key={d} value={d}>{d}</option>)}
@@ -285,7 +288,7 @@ export default function EnriquecerWizard({ distritos }: { distritos: string[] })
 
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">Mês de início do contrato</label>
-        <select value={mesInicio} onChange={e => { setMesInicio(e.target.value); fetchCount(distrito, filtro, incluirJaPesquisados, e.target.value); }}
+        <select value={mesInicio} onChange={e => { setMesInicio(e.target.value); fetchCount(distrito, filtro, incluirJaPesquisados, e.target.value, publica); }}
           className="border border-gray-300 rounded px-3 py-2 text-sm w-full">
           <option value="">Todos os meses</option>
           {MESES.map(m => <option key={m.val} value={m.val}>{m.label}</option>)}
@@ -296,12 +299,22 @@ export default function EnriquecerWizard({ distritos }: { distritos: string[] })
       </div>
 
       <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Tipo de empresa</label>
+        <select value={publica} onChange={e => { setPublica(e.target.value); fetchCount(distrito, filtro, incluirJaPesquisados, mesInicio, e.target.value); }}
+          className="border border-gray-300 rounded px-3 py-2 text-sm w-full">
+          <option value="">Pública: todas</option>
+          <option value="sim">Só públicas</option>
+          <option value="nao">Só privadas</option>
+        </select>
+      </div>
+
+      <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">Empresas a enriquecer</label>
         <div className="space-y-2">
           {(Object.keys(FILTRO_LABELS) as Filtro[]).map(f => (
             <label key={f} className="flex items-center gap-2 text-sm cursor-pointer">
               <input type="radio" name="filtro" value={f} checked={filtro === f}
-                onChange={() => { setFiltro(f); fetchCount(distrito, f, incluirJaPesquisados, mesInicio); }} />
+                onChange={() => { setFiltro(f); fetchCount(distrito, f, incluirJaPesquisados, mesInicio, publica); }} />
               {FILTRO_LABELS[f]}
             </label>
           ))}
@@ -350,7 +363,7 @@ export default function EnriquecerWizard({ distritos }: { distritos: string[] })
 
       <label className="flex items-center gap-2 text-sm cursor-pointer text-gray-600">
         <input type="checkbox" checked={incluirJaPesquisados}
-          onChange={e => { setIncluirJaPesquisados(e.target.checked); fetchCount(distrito, filtro, e.target.checked, mesInicio); }} />
+          onChange={e => { setIncluirJaPesquisados(e.target.checked); fetchCount(distrito, filtro, e.target.checked, mesInicio, publica); }} />
         Incluir NIFs já pesquisados sem resultado
       </label>
 

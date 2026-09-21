@@ -9,10 +9,14 @@ export async function GET(req: NextRequest) {
   }
 
   const mesParam = req.nextUrl.searchParams.get("mes");
-  if (!mesParam || !/^([1-9]|1[0-2])$/.test(mesParam)) {
+  if (mesParam && !/^([1-9]|1[0-2])$/.test(mesParam)) {
     return NextResponse.json({ error: "Parâmetro 'mes' inválido (esperado 1-12)" }, { status: 400 });
   }
+  const mes = mesParam ? parseInt(mesParam) : null;
 
-  const listas = await calcularListasCampanha(parseInt(mesParam));
+  const publicaParam = req.nextUrl.searchParams.get("publica");
+  const publica = publicaParam === "sim" ? true : publicaParam === "nao" ? false : null;
+
+  const listas = await calcularListasCampanha(mes, publica);
   return NextResponse.json(listas);
 }

@@ -14,10 +14,11 @@ export async function GET(req: NextRequest) {
   const filtro               = searchParams.get("filtro") || "ambos";
   const mesInicio             = searchParams.get("mesInicio") || undefined;
   const incluirJaPesquisados = searchParams.get("incluirJaPesquisados") === "1";
+  const publica               = searchParams.get("publica") || undefined;
 
   const nifsComMesInicio = await getNifsComMesInicio(mesInicio);
   const empresas = await prisma.empresa.findMany({
-    where: buildWhere(distrito, filtro, incluirJaPesquisados, nifsComMesInicio),
+    where: buildWhere(distrito, filtro, incluirJaPesquisados, nifsComMesInicio, publica),
     select: { nif: true, nome: true, telefone: true, email: true, morada: true, localidade: true },
     orderBy: { nome: "asc" },
   });
