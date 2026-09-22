@@ -2,7 +2,11 @@ import { prisma } from "@/lib/prisma";
 
 export type EmpresaResumo = { nif: string; nome: string; email: string };
 
-export async function calcularListasCampanha(mes: number | null, publica: boolean | null = null) {
+export async function calcularListasCampanha(
+  mes: number | null,
+  publica: boolean | null = null,
+  distrito: string | null = null,
+) {
   let nifsComMes: string[] | null = null;
   if (mes !== null) {
     const rows = await prisma.$queryRaw<{ empresaNif: string }[]>`
@@ -18,6 +22,7 @@ export async function calcularListasCampanha(mes: number | null, publica: boolea
       email: { not: null },
       ...(nifsComMes !== null && { nif: { in: nifsComMes } }),
       ...(publica !== null && { empresaPublica: publica }),
+      ...(distrito && { distrito }),
     },
     select: {
       nif: true,

@@ -28,7 +28,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const { nome, mesFiltro, publicaFiltro, contaEmailId, modeloEmailId, nifsAdicionaisKanban, nifsExplicitos } = await req.json();
+  const { nome, mesFiltro, publicaFiltro, distritoFiltro, contaEmailId, modeloEmailId, nifsAdicionaisKanban, nifsExplicitos } = await req.json();
 
   if (!nome?.trim() || !contaEmailId || !modeloEmailId) {
     return NextResponse.json({ error: "Nome, conta e modelo são obrigatórios" }, { status: 400 });
@@ -71,8 +71,9 @@ export async function POST(req: Request) {
   }
 
   const publica = publicaFiltro === "sim" ? true : publicaFiltro === "nao" ? false : null;
+  const distrito = distritoFiltro || null;
 
-  const { elegiveis, jaNoKanban } = await calcularListasCampanha(mes, publica);
+  const { elegiveis, jaNoKanban } = await calcularListasCampanha(mes, publica, distrito);
 
   const kanbanSelecionados = new Set<string>(Array.isArray(nifsAdicionaisKanban) ? nifsAdicionaisKanban : []);
   const incluidos = [

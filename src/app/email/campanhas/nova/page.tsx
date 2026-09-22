@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { DISTRITOS } from "@/lib/data/portugal";
 
 type EmpresaResumo = { nif: string; nome: string; email: string };
 type Listas = { elegiveis: EmpresaResumo[]; excluidasTermino: EmpresaResumo[]; jaNoKanban: EmpresaResumo[] };
@@ -22,6 +23,7 @@ export default function NovaCampanhaPage() {
 
   const [mes, setMes] = useState("");
   const [publica, setPublica] = useState("");
+  const [distrito, setDistrito] = useState("");
   const [listas, setListas] = useState<Listas | null>(null);
   const [loadingListas, setLoadingListas] = useState(false);
   const [selecionadosKanban, setSelecionadosKanban] = useState<Set<string>>(new Set());
@@ -53,11 +55,12 @@ export default function NovaCampanhaPage() {
     const params = new URLSearchParams();
     if (mes) params.set("mes", mes);
     if (publica) params.set("publica", publica);
+    if (distrito) params.set("distrito", distrito);
     fetch(`/api/email/campanhas/preview?${params.toString()}`)
       .then((r) => r.json())
       .then(setListas)
       .finally(() => setLoadingListas(false));
-  }, [mes, publica]);
+  }, [mes, publica, distrito]);
 
   function toggleKanban(nif: string) {
     setSelecionadosKanban((prev) => {
@@ -83,6 +86,7 @@ export default function NovaCampanhaPage() {
         nome: nomeCampanha,
         mesFiltro: mes,
         publicaFiltro: publica,
+        distritoFiltro: distrito,
         contaEmailId,
         modeloEmailId,
         nifsAdicionaisKanban: Array.from(selecionadosKanban),
@@ -182,7 +186,14 @@ export default function NovaCampanhaPage() {
                 <option value="nao">Só privadas</option>
               </select>
             </div>
-            <div />
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Distrito</label>
+              <select value={distrito} onChange={(e) => setDistrito(e.target.value)}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <option value="">Todos os distritos</option>
+                {DISTRITOS.map((d) => <option key={d} value={d}>{d}</option>)}
+              </select>
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">

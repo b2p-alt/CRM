@@ -17,6 +17,8 @@ export async function GET(req: NextRequest) {
   const publicaParam = req.nextUrl.searchParams.get("publica");
   const publica = publicaParam === "sim" ? true : publicaParam === "nao" ? false : null;
 
-  const listas = await calcularListasCampanha(mes, publica);
+  const distrito = req.nextUrl.searchParams.get("distrito") || null;
+
+  const listas = await calcularListasCampanha(mes, publica, distrito);
   return NextResponse.json(listas);
 }
