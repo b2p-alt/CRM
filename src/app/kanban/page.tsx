@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import KanbanBoard from "@/components/KanbanBoard";
+import { KANBAN_PARTILHA_EMAILS, KANBAN_PARTILHA_COLUNAS } from "@/lib/kanban-partilha";
 
 const CARD_INCLUDE = {
   empresa: {
@@ -39,7 +40,8 @@ export default async function KanbanPage() {
   const session = await auth();
   if (!session) redirect("/login");
 
-  const isMaster = session.user?.role === "MASTER";
+  const email = session.user?.email?.toLowerCase() ?? "";
+  const partilha = KANBAN_PARTILHA_EMAILS.includes(email);
 
   const [cards, sharedCards] = await Promise.all([
     prisma.kanbanCard.findMany({
@@ -47,9 +49,13 @@ export default async function KanbanPage() {
       include: CARD_INCLUDE,
       orderBy: { updatedAt: "desc" },
     }),
-    isMaster
+    partilha
       ? prisma.kanbanCard.findMany({
-          where: { coluna: "PROPOSTA", userId: { not: session.user!.id! } },
+          where: {
+            coluna: { in: [...KANBAN_PARTILHA_COLUNAS] },
+            userId: { not: session.user!.id! },
+            user: { email: { in: KANBAN_PARTILHA_EMAILS } },
+          },
           include: CARD_INCLUDE,
           orderBy: { updatedAt: "desc" },
         })

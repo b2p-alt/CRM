@@ -12,7 +12,8 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   const card = await prisma.kanbanCard.findUnique({ where: { id } });
   if (!card) return NextResponse.json({ error: "Não encontrado" }, { status: 404 });
 
-  if (session.user?.role !== "MASTER" && card.userId !== session.user?.id) {
+  // Só o dono altera o cartão; MASTER liberta cartões de outros via /api/admin/kanban-liberar
+  if (card.userId !== session.user?.id) {
     return NextResponse.json({ error: "Sem permissão" }, { status: 403 });
   }
 
@@ -43,7 +44,7 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
   const card = await prisma.kanbanCard.findUnique({ where: { id } });
   if (!card) return NextResponse.json({ error: "Não encontrado" }, { status: 404 });
 
-  if (session.user?.role !== "MASTER" && card.userId !== session.user?.id) {
+  if (card.userId !== session.user?.id) {
     return NextResponse.json({ error: "Sem permissão" }, { status: 403 });
   }
 
