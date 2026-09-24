@@ -45,6 +45,8 @@ model Empresa {
   telefone      String?
   email         String?
   website       String?
+  cae           String?   // código CAE (ex: "23312"), preenchido pelo enriquecimento eInforma
+  caeDescricao  String?   // descrição da atividade CAE
   morada        String?
   distrito      String?
   localidade    String?

@@ -68,6 +68,7 @@ export async function importRecords(
     nif: string; nome: string; morada: string | null;
     localidade: string | null; distrito: string;
     telefone: string | null; email: string | null; website: string | null;
+    cae: string | null; caeDescricao: string | null;
   }[] = [];
   const instalInserts: {
     cpe: string; nivel: string; morada: string | null;
@@ -100,9 +101,11 @@ export async function importRecords(
         morada:     buildMorada(r.rua, r.porta),
         localidade: cleanLocalidade(r.descPostal),
         distrito,
-        telefone:   enrich?.telefone ?? null,
-        email:      enrich?.email    ?? null,
-        website:    enrich?.website  ?? null,
+        telefone:     enrich?.telefone     ?? null,
+        email:        enrich?.email        ?? null,
+        website:      enrich?.website      ?? null,
+        cae:          enrich?.cae          ?? null,
+        caeDescricao: enrich?.caeDescricao ?? null,
       });
     }
 
@@ -133,6 +136,7 @@ export async function importRecords(
           nif: e.nif, nome: e.nome, morada: e.morada,
           localidade: e.localidade, distrito: e.distrito,
           telefone: e.telefone, email: e.email, website: e.website,
+          cae: e.cae, caeDescricao: e.caeDescricao,
           rascunho,
         },
         update: {}, // nunca sobrescreve dados introduzidos manualmente

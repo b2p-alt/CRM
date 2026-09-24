@@ -19,6 +19,8 @@ export type EnrichData = {
   telefone: string | null;
   email: string | null;
   website: string | null;
+  cae: string | null;           // código CAE, ex: "23312"
+  caeDescricao: string | null;  // ex: "Fabricação de ladrilhos, mosaicos e lajes de cerâmica"
   found: boolean;
 };
 
@@ -98,6 +100,46 @@ function extractFromThisPage(html: string): { telephone: string | null; email: s
   return { telephone, email };
 }
 
+// ── Extracção do CAE (tabela de identificação, fora do JSON-LD) ─────────
+//
+// O eInforma não inclui o CAE no bloco JSON-LD. Aparece numa linha da
+// tabela de identificação: "Atividade (CAE):" seguido do código e descrição,
+// com entidades HTML nomeadas (&ccedil; etc.) em vez de acentos diretos.
+
+const HTML_ENTITIES: Record<string, string> = {
+  aacute: "á", agrave: "à", acirc: "â", atilde: "ã",
+  eacute: "é", egrave: "è", ecirc: "ê",
+  iacute: "í", icirc: "î",
+  oacute: "ó", ograve: "ò", ocirc: "ô", otilde: "õ",
+  uacute: "ú", ucirc: "û",
+  ccedil: "ç", ntilde: "ñ",
+  Aacute: "Á", Atilde: "Ã", Eacute: "É", Iacute: "Í", Oacute: "Ó", Otilde: "Õ", Uacute: "Ú", Ccedil: "Ç",
+  nbsp: " ", amp: "&", quot: "\"", apos: "'", lt: "<", gt: ">",
+};
+
+function decodeHtmlEntities(text: string): string {
+  return text
+    .replace(/&#(\d+);/g, (_, code) => String.fromCharCode(Number(code)))
+    .replace(/&#x([0-9a-fA-F]+);/g, (_, code) => String.fromCharCode(parseInt(code, 16)))
+    .replace(/&(\w+);/g, (m, name) => HTML_ENTITIES[name] ?? m);
+}
+
+function extractCae(html: string): { cae: string | null; caeDescricao: string | null } {
+  const m = html.match(
+    /Atividade \(CAE\):<\/td>\s*<td[^>]*>\s*<span class="category">\s*<a[^>]*>([^<]+)<\/a>/i
+  );
+  if (!m) return { cae: null, caeDescricao: null };
+
+  const text = decodeHtmlEntities(m[1]).trim();
+  const sepIdx = text.indexOf(" - ");
+  if (sepIdx === -1) return { cae: text || null, caeDescricao: null };
+
+  return {
+    cae:          text.slice(0, sepIdx).trim() || null,
+    caeDescricao: text.slice(sepIdx + 3).trim() || null,
+  };
+}
+
 // ── Função principal ───────────────────────────────────────────────────────
 
 export async function enrichNif(
@@ -117,7 +159,7 @@ export async function enrichNif(
     idSess = getIdSess();
   } catch (err) {
     console.error(`[einforma] ${err instanceof Error ? err.message : err}`);
-    return { telefone: null, email: null, website: null, found: false };
+    return { telefone: null, email: null, website: null, cae: null, caeDescricao: null, found: false };
   }
 
   const url = `${BASE}/id_sess/${idSess}/prod/ETIQUETA_EMPRESA/nif/${nifDigits}/source/search/campaign/fichaemp/`;
@@ -134,7 +176,7 @@ export async function enrichNif(
       redirect: "follow",
     });
 
-    if (!res.ok) return { telefone: null, email: null, website: null, found: false };
+    if (!res.ok) return { telefone: null, email: null, website: null, cae: null, caeDescricao: null, found: false };
 
     // Decodifica como ISO-8859-1 (charset declarado pelo eInforma)
     const buf  = await res.arrayBuffer();
@@ -143,7 +185,7 @@ export async function enrichNif(
     // Sessão expirou — servidor redireccionou para login
     if (html.includes("form_login") || html.includes("LOGIN_XML") || res.url.includes("LOGIN")) {
       console.warn(`[einforma] SESSÃO EXPIRADA — renove EINFORMA_ID_SESS no .env`);
-      return { telefone: null, email: null, website: null, found: false };
+      return { telefone: null, email: null, website: null, cae: null, caeDescricao: null, found: false };
     }
 
     const { telephone: telJsonLd, email: emailJsonLd, website: websiteVal } = extractFromJsonLd(html);
@@ -157,16 +199,20 @@ export async function enrichNif(
       emailVal  = emailVal  || fallback.email;
     }
 
-    console.log(`[einforma] ${nifDigits}: tel=${telephone} email=${emailVal} web=${websiteVal}`);
+    const { cae, caeDescricao } = extractCae(html);
+
+    console.log(`[einforma] ${nifDigits}: tel=${telephone} email=${emailVal} web=${websiteVal} cae=${cae}`);
 
     return {
       telefone: telephone,
       email:    emailVal,
       website:  websiteVal,
+      cae,
+      caeDescricao,
       found:    !!(telephone || emailVal || websiteVal),
     };
   } catch (err) {
     console.error(`[einforma] erro ${nifDigits}:`, err);
-    return { telefone: null, email: null, website: null, found: false };
+    return { telefone: null, email: null, website: null, cae: null, caeDescricao: null, found: false };
   }
 }

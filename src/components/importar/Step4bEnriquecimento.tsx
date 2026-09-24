@@ -112,7 +112,7 @@ export default function Step4bEnriquecimento({ records, onDone, onSkip, onBack }
       <div className="max-w-lg mx-auto">
         <h2 className="text-base font-semibold text-gray-900 mb-1">4b. Enriquecimento de contactos</h2>
         <p className="text-sm text-gray-500 mb-6">
-          Pesquisa automática de telefone, email e website no eInforma.pt para as empresas deste lote.
+          Pesquisa automática de telefone, email, website e CAE no eInforma.pt para as empresas deste lote.
           Este passo é opcional.
         </p>
 
@@ -243,6 +243,7 @@ export default function Step4bEnriquecimento({ records, onDone, onSkip, onBack }
               <th className="text-left px-3 py-2.5 font-semibold text-gray-500 uppercase tracking-wide">Telefone</th>
               <th className="text-left px-3 py-2.5 font-semibold text-gray-500 uppercase tracking-wide">Email</th>
               <th className="text-left px-3 py-2.5 font-semibold text-gray-500 uppercase tracking-wide">Website</th>
+              <th className="text-left px-3 py-2.5 font-semibold text-gray-500 uppercase tracking-wide">CAE</th>
               <th className="text-left px-3 py-2.5 font-semibold text-gray-500 uppercase tracking-wide w-16">Estado</th>
             </tr>
           </thead>
@@ -273,6 +274,19 @@ export default function Step4bEnriquecimento({ records, onDone, onSkip, onBack }
                     placeholder="—"
                     onChange={e => patchEdit(nipc, { website: e.target.value || null })}
                   />
+                </td>
+                <td className="px-3 py-2">
+                  <div className="flex flex-col gap-0.5">
+                    <input
+                      className="w-16 border-0 bg-transparent font-mono focus:outline-none focus:bg-white focus:border focus:border-blue-300 focus:rounded px-1"
+                      value={editOverrides[nipc]?.cae ?? data.cae ?? ""}
+                      placeholder="—"
+                      onChange={e => patchEdit(nipc, { cae: e.target.value || null })}
+                    />
+                    <span className="text-gray-400 truncate max-w-[180px]" title={data.caeDescricao ?? undefined}>
+                      {editOverrides[nipc]?.caeDescricao ?? data.caeDescricao ?? ""}
+                    </span>
+                  </div>
                 </td>
                 <td className="px-3 py-2 text-center">
                   {(data.telefone || data.email || data.website)

@@ -12,6 +12,7 @@ type Props = {
     website?: string | null; morada?: string | null; distrito?: string | null;
     localidade?: string | null; quemAtende?: string | null; responsavel?: string | null;
     nomeComercial?: string | null; empresaPublica?: boolean;
+    cae?: string | null; caeDescricao?: string | null;
   };
 };
 
@@ -106,6 +107,20 @@ export default function EmpresaForm({ distritos, distritosLocalidades, empresa, 
           <input
             type="text"
             value={empresa.nomeComercial}
+            disabled
+            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-gray-50 text-gray-500"
+          />
+        </div>
+      )}
+      {empresa?.cae && (
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            CAE
+            <span className="ml-2 text-xs font-normal text-gray-400">(preenchido automaticamente pelo enriquecimento)</span>
+          </label>
+          <input
+            type="text"
+            value={`${empresa.cae}${empresa.caeDescricao ? " - " + empresa.caeDescricao : ""}`}
             disabled
             className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-gray-50 text-gray-500"
           />
